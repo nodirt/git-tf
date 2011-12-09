@@ -1,0 +1,217 @@
+#!/bin/bash
+
+exitCode=0
+
+verbose=true
+indent=-1
+exec=false
+tmpDir=/tmp/git-tfs
+# main commands
+number=9999999
+
+usage() {
+  echo "Usage is not written yet."
+}
+
+readChanges() {
+  git diff --raw --find-copies-harder HEAD^.. --diff-filter=$1 \
+    | sed 's/^:\w\+\s\w\+\s\w\+\.\+\s\w\+\.\+\s\w\+\t//'
+}
+
+push() {
+  echo \# Pushing commits
+  lastCommit=$( git log -n 1 --format=%H tfs )
+  echo \# Last synchronized commit: $( git log -n 1 --format=%h tfs )
+  commitNumber=$( min $number $( git log --oneline $lastCommit.. master | wc -l ) )
+  if [ $commitNumber -eq 0 ]; then
+    echo \# Nothing to push
+    return
+  fi
+  echo \# $commitNumber commit\(s\) to be pushed:
+  git log $lastCommit.. --format=%H master | tac | while read hash; do
+    echo
+    expect0 git checkout $hash
+    echo \# Pushing \"$( git log -n 1 --oneline )\" to TFS:
+    echo $( git log -n 1 --format=%s%n%b ) >$tmpDir/comment
+
+    if [ -n "$( readChanges TUX )" ]; then
+      git diff
+      echo "Unexpected file change!!"
+      echo
+      git diff --raw --find-copies-harder HEAD^.. --diff-filter=TUX
+      exit 1
+    fi
+
+    files=$( readChanges D )
+    if [ -n "$files" ]; then
+      mutate tf rm $files -recursive
+    fi
+
+    files=$( readChanges M )
+    if [ -n "$files" ]; then
+      mutate tf checkout $files
+    fi
+
+    readChanges R | while read file; do
+      mutate tf rename $files
+    done
+
+    files=$( readChanges CA | sed 's/^[^\t]\+\t//' )
+    if [ -n "$files" ]; then
+      mutate tf add $files
+    fi
+
+    checkinScript="tf checkin -comment:@$tmpDir/comment -recursive ."
+    echo $checkinScript
+    if [ $exec = true ]; then
+      lastInLine=""
+      while read inLine; do
+        lastInLine="$inLine"
+        echo "  $inLine"
+      done < <( $checkinScript )
+      if [ ${?} -ne 0 ]; then exit 1; fi
+
+      echo \# Moving TFS head
+      ignore git checkout tfs
+      expect0 git merge --ff-only $hash
+
+      # add a note about the changeset number
+      changeSetNumber=$( echo $lastInLine  | sed 's/Changeset \#\([0-9]\+\) checked in./\1/' )
+      if [ -z $changeSetNumber ]; then
+        echo Could not detect the changeset number!
+        echo Last checkin output line: $lastInLine
+        exitCode=1
+        return
+      fi
+      debug "Adding changeset number to the commit as a note. TFS:$changeSetNumber"
+      expect0 git notes add -m "TFS:$changeSetNumber" $hash
+    fi
+    decNumber
+    if [ $number -eq 0 ]; then return; fi
+  done
+}
+
+init() {
+  if [ -z $exec ]; then
+    echo \# Checking TFS status. Must be empty...
+    if [ "$( tf status )" != "There are no matching pending changes." ]; then
+      echo "\# TFS status is dirty!"
+      exit 1
+    fi
+  fi
+  status=$( git status -sb )
+  lineN=$( echo $status | wc -l )
+  if [ $lineN -ne 1 ]; then
+    echo "Worktree is dirty!"
+    exit 1
+  fi
+  origBranch=$( echo $status | sed 's/##\s\(\w\+\)/\1/' )
+  if [ "$origBranch" = "HEAD (no branch)" ]; then
+    echo Not currently on any branch
+    exit 1
+  fi
+  ignore git checkout tfs
+  mkdir -p $tmpDir
+}
+readOptions() {
+  lastOption=""
+  for o in $@; do
+    if [ "${o:0:2}" = "--" ]; then
+      lastOption=${o:2}
+      debug "option found: $lastOption"
+      eval $lastOption=true
+    elif [ ! -z $lastOption ]; then
+      debug "option $lastOption=$o"
+      eval $lastOption=$o
+      lastOption=""
+    fi
+  done
+}
+main() {
+  case $1 in
+    push)
+      push
+      ;;
+    hello)
+      echo Hello. I\'m git-tfs.
+      ;;
+    *)
+      usage
+      ;;
+  esac
+}
+finalize() {
+  rm -rf $tmpDir
+  ignore git checkout $origBranch
+}
+
+## Utils
+
+mutate() {
+  echo $@
+  if [ $exec = true ]; then
+    expect0 $@
+  fi
+}
+
+ignore() {
+  eval "$@ >/dev/null 2>/dev/null"
+}
+
+expect0() {
+  out=$( eval "$@ 2>&1" )
+  if [ ${?} -ne 0 ]; then
+    echo "$out"
+    exit ${?}
+  fi
+}
+
+
+debug() {
+  if [ $verbose = true ]; then
+    args=$@
+    for (( i=1; i<=$#; i++ )); do
+      echo \# ${!i}
+    done
+  fi
+}
+
+decNumber() {
+  if [ $number -gt 0 ]; then
+    let number--
+  fi
+}
+indentLevel=0
+incIndent() {
+  let indentLevel++
+}
+decIndent() {
+  let indentLevel--
+}
+indent() {
+  incIndent
+  indentStr=""
+  for (( i=0; i < $indentLevel; i++ )); do
+    indentStr="$indentStr  "
+  done
+
+  while read line; do
+    echo "$indentStr$line"
+  done
+
+  decIndent
+}
+
+min() {
+  if [ $1 -le $2 ]; then
+    echo $1
+  else
+    echo $2
+  fi
+}
+
+readOptions $@
+init
+main $@
+finalize
+exit $exitCode
