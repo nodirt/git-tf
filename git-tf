@@ -3,9 +3,8 @@
 exitCode=0
 
 verbose=true
-indent=-1
-exec=false
-tmpDir=/tmp/git-tfs
+exec=
+tmpDir=/tmp/git-tf
 # main commands
 number=9999999
 
@@ -63,7 +62,7 @@ push() {
 
     checkinScript="tf checkin -comment:@$tmpDir/comment -recursive ."
     echo $checkinScript
-    if [ $exec = true ]; then
+    if [ $exec ]; then
       lastInLine=""
       while read inLine; do
         lastInLine="$inLine"
@@ -91,14 +90,74 @@ push() {
   done
 }
 
-init() {
-  if [ -z $exec ]; then
-    echo \# Checking TFS status. Must be empty...
-    if [ "$( tf status )" != "There are no matching pending changes." ]; then
-      echo "\# TFS status is dirty!"
-      exit 1
-    fi
+fetch () {
+  echo \# Fetching from TFS
+  lastCommit=$( git log -n 1 --format=%H tfs )
+  lastChangeset=$( git notes show $lastCommit | grep -Po '(?<=[:?])\d+' )
+  echo \# Last synchronized changeset: $lastChangeset
+
+  latestCommit=$( tf history -stopAfter:1 -recursive . | grep -oP '^\d+' )
+  echo \# Latest changeset on TFS: $latestCommit
+  if [ "$lastChangeset" == "$latestCommit" ]; then
+    echo \# Nothing to fetch
+    return
   fi
+
+  tfHistoryCmd="tf history -recursive -version:C$lastChangeset~C$latestCommit ."
+  echo $tfHistoryCmd
+  tfHistory=$( $tfHistoryCmd | tac | grep -P '^\d+\s{2,}\w+' )
+  echo \# $( expr $( echo "$tfHistory" | wc -l) - 1 ) changesets to fetch
+
+
+  echo \# Making files read-only
+  find -type f -exec chmod -w {} \;
+  expect0 chmod -R +w .git
+
+  while read line; do
+    changeset=$( echo $line | grep -Po '^\d+' )
+    if [ -z $changeset -o $changeset -le $lastChangeset ]; then continue; fi
+
+    echo
+    echo \# Fetching $line...
+
+    comment=$( echo $line | grep -Po '(?<=\d:\d\d:\d\d [AP]M ).+$' )
+    if [ -z $comment ]; then
+      if [ $( echo $line | grep -Pc '\d+:\d+:\d+ [AP]M ?$' ) -eq 0 ]; then
+        echo "Could not parse comment!"
+        echo $line
+        echo Here is entire history:
+        echo "$tfHistory"
+        exit 1
+      fi
+      echo \# Comment is empty, so using the entire line as a commit comment
+      comment=$line
+    fi
+
+    expect0 tf get -version:$changeset -recursive . | indent
+
+    echo \# Committing to Git...
+    expect0 git add .
+    echo $comment > $tmpDir/comment
+    expect0 git commit -F "$tmpDir/comment" | indent
+
+    echo \# Adding a note "TFS:$changeset"
+    git notes add -m "TFS:$changeset" $( git log -n 1 --format=%H )
+
+    decNumber
+    if [ $number -eq 0 ]; then break; fi
+  done < <( echo "$tfHistory" )
+
+  echo \# Making files writable
+  find -type f -exec chmod +w {} \;
+}
+
+init() {
+  echo \# Checking TFS status. Must be empty...
+  if [ "$( tf status )" != "There are no matching pending changes." ]; then
+    echo "\# TFS status is dirty!"
+    exit 1
+  fi
+
   status=$( git status -sb )
   lineN=$( echo $status | wc -l )
   if [ $lineN -ne 1 ]; then
@@ -132,6 +191,9 @@ main() {
     push)
       push
       ;;
+    fetch)
+      fetch
+      ;;
     hello)
       echo Hello. I\'m git-tfs.
       ;;
@@ -149,7 +211,7 @@ finalize() {
 
 mutate() {
   echo $@
-  if [ $exec = true ]; then
+  if [ $exec ]; then
     expect0 $@
   fi
 }
@@ -181,25 +243,10 @@ decNumber() {
     let number--
   fi
 }
-indentLevel=0
-incIndent() {
-  let indentLevel++
-}
-decIndent() {
-  let indentLevel--
-}
 indent() {
-  incIndent
-  indentStr=""
-  for (( i=0; i < $indentLevel; i++ )); do
-    indentStr="$indentStr  "
-  done
-
   while read line; do
-    echo "$indentStr$line"
+    echo "  $line"
   done
-
-  decIndent
 }
 
 min() {
