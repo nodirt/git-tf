@@ -1,6 +1,7 @@
 #!/bin/bash
 
 exitCode=0
+domain=componentone.com
 
 verbose=true
 noChecks=
@@ -32,7 +33,7 @@ push() {
     echo
     expect0 git checkout $hash
     echo \# Pushing \"$( git log -n 1 --oneline )\" to TFS:
-    echo $( git log -n 1 --format=%s%n%b ) >$tmpDir/comment
+    echo $( git log -n 1 --format=%s%n%b ) > $tmpDir/comment
 
     if [ -n "$( readChanges TUX )" ]; then
       git diff
@@ -109,7 +110,7 @@ fetch () {
   tfHistoryCmd="tf history -recursive -version:C$lastChangeset~C$latestCommit ."
   echo $tfHistoryCmd
   tfHistory=$( $tfHistoryCmd | tac | grep -P '^\d+\s{2,}\w+' )
-  echo \# $( expr $( echo "$tfHistory" | wc -l) - 1 ) changesets to fetch
+  echo \# $( expr $( echo "$tfHistory" | wc -l ) - 1 ) changeset\(s\) to fetch
 
 
   echo \# Making files read-only
@@ -123,8 +124,9 @@ fetch () {
     echo
     echo \# Fetching \"$line\"...
 
-    comment=$( echo $line | grep -Po '(?<=\d:\d\d:\d\d [AP]M ).+$' )
-    if [ -z "$comment" ]; then
+    comment=$tmpDir/comment
+    echo $line | grep -Po '(?<=\d:\d\d:\d\d [AP]M ).+$' > $comment
+    if [ ! -s $comment ]; then
       if [ $( echo $line | grep -Pc '\d+:\d+:\d+ [AP]M ?$' ) -eq 0 ]; then
         echo "Could not parse comment!"
         echo $line
@@ -133,18 +135,19 @@ fetch () {
         exit 1
       fi
       echo \# Comment is empty, so using the entire line as a commit comment
-      comment=$line
+      echo "$line" > $comment
     fi
 
     expect0 tf get -version:$changeset -recursive . | indent
 
     echo \# Committing to Git...
+    author=$( echo $line | grep -Po '(?<=COMPONENTONE\\)[^\s]+' )
     expect0 git add .
-    echo $comment > $tmpDir/comment
-    expect0 git commit -F "$tmpDir/comment" | indent
+    expect0 git commit -F $comment "--author=\"$author <$author@$domain>\"" | indent
 
-    echo \# Adding a note "TFS:$changeset"
-    git notes add -m "TFS:$changeset" $( git log -n 1 --format=%H )
+    # adding a note
+    echo "$line" > $tmpDir/note
+    git notes add -F $tmpDir/note $( git log -n 1 --format=%H )
 
     decNumber
     if [ $number -eq 0 ]; then break; fi
@@ -152,6 +155,13 @@ fetch () {
 
   echo \# Making files writable
   find -type f -exec chmod +w {} \;
+}
+
+pull () {
+  fetch
+  echo \# Rebasing
+  git checkout master | indent
+  git rebase tfs  | indent
 }
 
 init() {
@@ -198,6 +208,9 @@ main() {
       ;;
     fetch)
       fetch
+      ;;
+    pull)
+      pull
       ;;
     hello)
       echo Hello. I\'m git-tfs.
