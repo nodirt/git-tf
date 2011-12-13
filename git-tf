@@ -52,7 +52,7 @@ push() {
       mutate tf checkout $files
     fi
 
-    readChanges R | while read file; do
+    readChanges R | while read -r file; do
       mutate tf rename $files
     done
 
@@ -65,7 +65,7 @@ push() {
     echo $checkinScript
     if [ $exec ]; then
       lastInLine=""
-      while read inLine; do
+      while read -r inLine; do
         lastInLine="$inLine"
         echo "  $inLine"
       done < <( $checkinScript )
@@ -116,7 +116,7 @@ fetch () {
   find -type f -exec chmod -w {} \;
   expect0 chmod -R +w .git
 
-  while read line; do
+  while read -r line; do
     changeset=$( echo $line | grep -Po '^\d+' )
     if [ -z $changeset -o $changeset -le $lastChangeset ]; then continue; fi
 
@@ -245,7 +245,7 @@ decNumber() {
   fi
 }
 indent() {
-  while read line; do
+  while read -r line; do
     echo "  $line"
   done
 }
