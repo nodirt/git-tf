@@ -3,6 +3,7 @@
 exitCode=0
 
 verbose=true
+noChecks=
 exec=
 tmpDir=/tmp/git-tf
 # main commands
@@ -71,7 +72,7 @@ push() {
       if [ ${?} -ne 0 ]; then exit 1; fi
 
       echo \# Moving TFS head
-      ignore git checkout tfs
+      expect0 git checkout tfs
       expect0 git merge --ff-only $hash
 
       # add a note about the changeset number
@@ -83,17 +84,19 @@ push() {
         return
       fi
       debug "Adding changeset number to the commit as a note. TFS:$changeSetNumber"
-      expect0 git notes add -m "TFS:$changeSetNumber" $hash
+
+      tf history -stopafter:3 -recursive . | grep ^$changeSetNumber > $tmpDir/changeset
+      expect0 git notes add -F $tmpDir/changeset $hash
     fi
     decNumber
-    if [ $number -eq 0 ]; then return; fi
+    if [ $number -eq 0 ]; then break; fi
   done
 }
 
 fetch () {
   echo \# Fetching from TFS
   lastCommit=$( git log -n 1 --format=%H tfs )
-  lastChangeset=$( git notes show $lastCommit | grep -Po '(?<=[:?])\d+' )
+  lastChangeset=$( git notes show  $lastCommit | grep -Po '^\d+' | tail -n 1 )
   echo \# Last synchronized changeset: $lastChangeset
 
   latestCommit=$( tf history -stopAfter:1 -recursive . | grep -oP '^\d+' )
@@ -118,10 +121,10 @@ fetch () {
     if [ -z $changeset -o $changeset -le $lastChangeset ]; then continue; fi
 
     echo
-    echo \# Fetching $line...
+    echo \# Fetching \"$line\"...
 
     comment=$( echo $line | grep -Po '(?<=\d:\d\d:\d\d [AP]M ).+$' )
-    if [ -z $comment ]; then
+    if [ -z "$comment" ]; then
       if [ $( echo $line | grep -Pc '\d+:\d+:\d+ [AP]M ?$' ) -eq 0 ]; then
         echo "Could not parse comment!"
         echo $line
@@ -152,10 +155,12 @@ fetch () {
 }
 
 init() {
-  echo \# Checking TFS status. Must be empty...
-  if [ "$( tf status )" != "There are no matching pending changes." ]; then
-    echo "\# TFS status is dirty!"
-    exit 1
+  if [ -z $noChecks ]; then
+    echo \# Checking TFS status. Must be empty...
+    if [ "$( tf status )" != "There are no matching pending changes." ]; then
+      echo "\# TFS status is dirty!"
+      exit 1
+    fi
   fi
 
   status=$( git status -sb )
@@ -169,7 +174,7 @@ init() {
     echo Not currently on any branch
     exit 1
   fi
-  ignore git checkout tfs
+  expect0 git checkout tfs
   mkdir -p $tmpDir
 }
 readOptions() {
@@ -204,7 +209,7 @@ main() {
 }
 finalize() {
   rm -rf $tmpDir
-  ignore git checkout $origBranch
+  expect0 git checkout $origBranch
 }
 
 ## Utils
@@ -214,10 +219,6 @@ mutate() {
   if [ $exec ]; then
     expect0 $@
   fi
-}
-
-ignore() {
-  eval "$@ >/dev/null 2>/dev/null"
 }
 
 expect0() {
