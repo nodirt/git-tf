@@ -1,8 +1,19 @@
 #!/bin/bash
 
-exitCode=0
-domain=componentone.com
+readConfigValue() {
+  eval $1=$( git config tf.$1 )
+  if [ -z "${!1}" ]; then
+    echo git tf is not configured. Config value "tf.$1" not found.
+    exit 2
+  fi
+}
+readConfig() {
+  readConfigValue domain
+  readConfigValue DOMAIN
+  readConfigValue username
+}
 
+exitCode=0
 verbose=true
 noChecks=
 exec=
@@ -11,7 +22,7 @@ tmpDir=/tmp/git-tf
 number=9999999
 
 usage() {
-  echo "Usage is not written yet."
+  echo "Usage is not written yet. Sorry."
 }
 
 readChanges() {
@@ -86,7 +97,9 @@ push() {
       fi
       debug "Adding changeset number to the commit as a note. TFS:$changeSetNumber"
 
-      tf history -stopafter:3 -recursive . | grep ^$changeSetNumber > $tmpDir/changeset
+      echo -n $changeSetNumber "$( seq -s " " $( expr 10 - length $changeSetNumber ) | sed 's/[0-9]//g' )" $DOMAIN\\$username \
+        $( date "+%b %d, %Y %r" ) "" > $tmpDir/changeset
+      cat $tmpDir/comment >> $tmpDir/changeset
       expect0 git notes add -F $tmpDir/changeset $hash
     fi
     decNumber
@@ -165,8 +178,32 @@ pull () {
 }
 
 init() {
+  root=$( git rev-parse --show-toplevel 2>&1 )
+  if [ ${?} -ne 0 ]; then
+    git status
+    exitCode=123
+    return
+  fi
+
+  pushd "$root" > /dev/null
+  readConfig
+
+  if [ "$( git status -s )" ]; then
+    echo "Worktree is dirty"
+    exitCode=6
+    return
+  fi
+
   if [ -z $noChecks ]; then
-    echo \# Checking TFS status. Must be empty...
+    echo \# Checking TFS status. There must be no pending changes...
+    workfold=$( tf workfold . )
+    if [ $( echo "$workfold" | grep -Pc ": $PWD$" ) -ne 1 ]; then
+      echo Mapped TF root work folder does not match git root work folder!
+      echo Expected: $PWD
+      echo Actual: $( echo "$workfold" | tail -n +4 | grep -Po ': .+$' )
+      exitCode=5
+      return
+    fi
     if [ "$( tf status )" != "There are no matching pending changes." ]; then
       echo "\# TFS status is dirty!"
       exit 1
@@ -221,6 +258,7 @@ main() {
   esac
 }
 finalize() {
+  popd > /dev/null
   rm -rf $tmpDir
   expect0 git checkout $origBranch
 }
@@ -271,8 +309,15 @@ min() {
   fi
 }
 
+if [ -z "$1" -o "$1" == "--help" ]; then
+  usage
+  exit
+fi
+
 readOptions $@
 init
-main $@
+if [ $exitCode -eq 0 ]; then
+  main $@
+fi
 finalize
 exit $exitCode
