@@ -8,7 +8,6 @@ if [ -z "$tf" ]; then
   tf=tf
 fi
 
-
 readConfig() {
   readValue() {
     eval $1=$( git config tf.$1 )
@@ -22,6 +21,7 @@ readConfig() {
   readValue username
 }
 
+export GIT_NOTES_REF=refs/notes/tf
 exitCode=0
 verbose=true
 noChecks=
