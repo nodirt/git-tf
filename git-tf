@@ -44,6 +44,16 @@ push() {
     return
   fi
 
+  echo Checking whether there are no unfetched changes on TFS...
+  latestGitChangeset=$( git notes show  $lastCommit | grep -Po '^\d+' | tail -n 1 )
+  latestTfChangeset=$( $tf history -stopAfter:1 -recursive . | grep -oP '^\d+' )
+  if [ $latestGitChangeset -lt $latestTfChangeset ]; then
+    echo "There are unfetched changes on TFS. Fetch and merge them before pushing".
+    echo Latest local changeset: $latestGitChangeset
+    echo Latest TFS changeset: $latestTfChangeset
+    return
+  fi
+
   echo Pushing commits
   echo Last synchronized commit: $( git log -n 1 --format=%h tfs )
   commitNumber=$( min $number $( git log --oneline $lastCommit.. master | wc -l ) )
@@ -140,7 +150,7 @@ fetch () {
 
   latestCommit=$( $tf history -stopAfter:1 -recursive . | grep -oP '^\d+' )
   echo Latest changeset on TFS: $latestCommit
-  if [ "$lastChangeset" == "$latestCommit" ]; then
+  if [ $lastChangeset -eq $latestCommit ]; then
     echo Nothing to fetch
     return
   fi
