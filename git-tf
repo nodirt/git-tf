@@ -31,8 +31,16 @@ readChanges() {
 }
 
 push() {
-  echo \# Pushing commits
   lastCommit=$( git log -n 1 --format=%H tfs )
+  unmergedCommits=$( git log $( git log master --format=%H -n 1 ).. master --oneline )
+  if [ "$unmergedCommits" ]; then
+    exitCode=7
+    echo "You have unmerged changes in tfs branch:"
+    echo "$unmergedCommits" | indent
+    return
+  fi
+
+  echo \# Pushing commits
   echo \# Last synchronized commit: $( git log -n 1 --format=%h tfs )
   commitNumber=$( min $number $( git log --oneline $lastCommit.. master | wc -l ) )
   if [ $commitNumber -eq 0 ]; then
