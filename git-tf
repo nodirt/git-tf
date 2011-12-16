@@ -35,8 +35,8 @@ usage() {
 }
 
 push() {
-  lastCommit=$( git log -n 1 --format=%H tfs )
-  unmergedCommits=$( git log $( git log master --format=%H -n 1 ).. master --oneline )
+  lastCommit=$( git log -1 --format=%H tfs )
+  unmergedCommits=$( git log $( git log master --format=%H -1 ).. master --oneline )
   if [ "$unmergedCommits" ]; then
     exitCode=7
     echo "You have unmerged changes in tfs branch:"
@@ -45,7 +45,7 @@ push() {
   fi
 
   echo Checking whether there are no unfetched changes on TFS...
-  latestGitChangeset=$( git notes show  $lastCommit | grep -Po '^\d+' | tail -n 1 )
+  latestGitChangeset=$( git notes show  $lastCommit | grep -Po '^\d+' | tail -1 )
   latestTfChangeset=$( $tf history -stopAfter:1 -recursive . | grep -oP '^\d+' )
   if [ $latestGitChangeset -lt $latestTfChangeset ]; then
     echo "There are unfetched changes on TFS. Fetch and merge them before pushing".
@@ -55,7 +55,7 @@ push() {
   fi
 
   echo Pushing commits
-  echo Last synchronized commit: $( git log -n 1 --format=%h tfs )
+  echo Last synchronized commit: $( git log -1 --format=%h tfs )
   commitNumber=$( min $number $( git log --oneline $lastCommit.. master | wc -l ) )
   if [ $commitNumber -eq 0 ]; then
     echo Nothing to push
@@ -65,8 +65,8 @@ push() {
   git log $lastCommit.. --format=%H master | tac | while read hash; do
     echo
     expect0 git checkout $hash
-    echo Pushing \"$( git log -n 1 --oneline )\" to TFS:
-    echo $( git log -n 1 --format=%s%n%b ) > $tmpDir/comment
+    echo Pushing \"$( git log -1 --oneline )\" to TFS:
+    echo $( git log -1 --format=%s%n%b ) > $tmpDir/comment
 
     if [ -n "$( readChanges TUX )" ]; then
       git diff
@@ -144,8 +144,8 @@ push() {
 
 fetch () {
   echo Fetching from TFS
-  lastCommit=$( git log -n 1 --format=%H tfs )
-  lastChangeset=$( git notes show  $lastCommit | grep -Po '^\d+' | tail -n 1 )
+  lastCommit=$( git log -1 --format=%H tfs )
+  lastChangeset=$( git notes show  $lastCommit | grep -Po '^\d+' | tail -1 )
   echo Last synchronized changeset: $lastChangeset
 
   latestCommit=$( $tf history -stopAfter:1 -recursive . | grep -oP '^\d+' )
@@ -195,7 +195,7 @@ fetch () {
 
     # adding a note
     echo "$line" > $tmpDir/note
-    git notes add -F $tmpDir/note $( git log -n 1 --format=%H )
+    git notes add -F $tmpDir/note $( git log -1 --format=%H )
 
     decNumber
     if [ $number -eq 0 ]; then break; fi
