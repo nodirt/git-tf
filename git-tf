@@ -25,6 +25,7 @@ export GIT_NOTES_REF=refs/notes/tf
 exitCode=0
 verbose=true
 noChecks=
+debug=
 exec=
 tmpDir=/tmp/git-tf
 # main commands
@@ -68,6 +69,11 @@ push() {
     echo Pushing \"$( git log -1 --oneline )\" to TFS:
     echo $( git log -1 --format=%s%n%b ) > $tmpDir/comment
 
+    readChanges() {
+      git diff --raw --find-copies-harder HEAD^.. --diff-filter=$1 \
+        | sed 's/^:\w\+\s\w\+\s\w\+\.\+\s\w\+\.\+\s\w\+\t//'
+    }
+
     if [ -n "$( readChanges TUX )" ]; then
       git diff
       echo "Unexpected file change!!"
@@ -75,11 +81,6 @@ push() {
       git diff --raw --find-copies-harder HEAD^.. --diff-filter=TUX
       exit 1
     fi
-
-    readChanges() {
-      git diff --raw --find-copies-harder HEAD^.. --diff-filter=$1 \
-        | sed 's/^:\w\+\s\w\+\s\w\+\.\+\s\w\+\.\+\s\w\+\t//'
-    }
 
     files=$( readChanges D )
     if [ -n "$files" ]; then
@@ -119,10 +120,6 @@ push() {
     done < <( $tf checkin -comment:@$tmpDir/comment -recursive . )
     if [ ${?} -ne 0 ]; then exit 1; fi
 
-    echo Moving TFS head and marking the commit with a note
-    expect0 git checkout tfs
-    expect0 git merge --ff-only $hash
-
     # add a note about the changeset number
     changeSetNumber=$( echo $lastInLine  | sed 's/Changeset \#\([0-9]\+\) checked in./\1/' )
     if [ -z $changeSetNumber ]; then
@@ -131,6 +128,10 @@ push() {
       exitCode=1
       return
     fi
+
+    echo Moving TFS head and marking the commit with a note
+    expect0 git checkout tfs
+    expect0 git merge --ff-only $hash
 
     echo -n $changeSetNumber "$( seq -s " " $( expr 10 - length $changeSetNumber ) | sed 's/[0-9]//g' )" $DOMAIN\\$username \
       $( date "+%b %d, %Y %r" ) "" > $tmpDir/changeset
@@ -205,7 +206,7 @@ fetch () {
   find -type f -exec chmod +w {} \;
 }
 
-pull () {
+pull() {
   fetch
   echo Rebasing
   git checkout master | indent
@@ -230,7 +231,6 @@ init() {
   fi
 
   if [ -z $noChecks ]; then
-
     echo Checking TFS status. There must be no pending changes...
     workfold=$( $tf workfold . )
     if [ $( echo "$workfold" | grep -Pc ": $PWD$" ) -ne 1 ]; then
@@ -302,6 +302,10 @@ finalize() {
 ## Utils
 
 expect0() {
+  if [ "$debug" ]; then
+    echo "$@"
+  fi
+
   out=$( eval "$@ 2>&1" )
   if [ ${?} -ne 0 ]; then
     echo "$out"
