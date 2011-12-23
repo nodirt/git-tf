@@ -147,6 +147,11 @@ fetch () {
   echo Fetching from TFS
   lastCommit=$( git log -1 --format=%H tfs )
   lastChangeset=$( git notes show  $lastCommit | grep -Po '^\d+' | tail -1 )
+  if [ -z "$lastChangeset" ]; then
+    echo Last changeset could not determined. Probably the last commit is missing a tf note. Commit: $lastCommit
+    exitCode=7
+    return
+  fi
   echo Last synchronized changeset: $lastChangeset
 
   latestCommit=$( $tf history -stopAfter:1 -recursive . | grep -oP '^\d+' )
