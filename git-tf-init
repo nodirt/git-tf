@@ -1,0 +1,5 @@
+#!/bin/bash
+
+git branch tfs
+
+$gittfdir-fetch init $1

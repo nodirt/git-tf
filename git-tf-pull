@@ -1,0 +1,5 @@
+#!/bin/bash
+$gittf-fetch
+echo Rebasing
+git checkout master | indent
+git rebase tfs  | indent

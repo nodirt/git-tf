@@ -2,251 +2,60 @@
 
 if [ -z "$( which git )" ]; then
   echo 'Git not found in $PATH'
+  exit 1
 fi
-tf=$( git config tf.cmd )
+export tf=$( git config tf.cmd )
 if [ -z "$tf" ]; then
   tf=tf
 fi
 
-readConfig() {
-  readValue() {
-    eval $1=$( git config tf.$1 )
-    if [ -z "${!1}" ]; then
-      echo git tf is not configured. Config value "tf.$1" not found.
-      exit 2
-    fi
-  }
-  readValue domain
-  readValue DOMAIN
-  readValue username
-}
-
 export GIT_NOTES_REF=refs/notes/tf
-exitCode=0
-verbose=true
-noChecks=
-debug=
-tmpDir=/tmp/git-tf
-# main commands
-number=9999999
+export verbose=true
+export noChecks=
+export debug=
+export tmpDir=/tmp/git-tf
+export number=9999999
 
 usage() {
   echo "Usage is not written yet. Sorry."
 }
 
-push() {
-  lastCommit=$( git log -1 --format=%H tfs )
-  unmergedCommits=$( git log $( git log master --format=%H -1 ).. master --oneline )
-  if [ "$unmergedCommits" ]; then
-    exitCode=7
-    echo "You have unmerged changes in tfs branch:"
-    echo "$unmergedCommits" | indent
-    return
-  fi
-
-  echo Checking whether there are no unfetched changes on TFS...
-  latestGitChangeset=$( git notes show  $lastCommit | grep -Po '^\d+' | tail -1 )
-  latestTfChangeset=$( $tf history -stopAfter:1 -recursive . | grep -oP '^\d+' )
-  if [ $latestGitChangeset -lt $latestTfChangeset ]; then
-    echo "There are unfetched changes on TFS. Fetch and merge them before pushing".
-    echo Latest local changeset: $latestGitChangeset
-    echo Latest TFS changeset: $latestTfChangeset
-    return
-  fi
-
-  echo Pushing commits
-  echo Last synchronized commit: $( git log -1 --format=%h tfs )
-  commitNumber=$( min $number $( git log --oneline $lastCommit.. master | wc -l ) )
-  if [ $commitNumber -eq 0 ]; then
-    echo Nothing to push
-    return
-  fi
-  echo $commitNumber commit\(s\) to be pushed:
-  git log $lastCommit.. --format=%H master | tac | while read hash; do
-    echo
-    expect0 git checkout $hash
-    echo Pushing \"$( git log -1 --oneline )\" to TFS:
-    echo $( git log -1 --format=%s%n%b ) > $tmpDir/comment
-
-    readChanges() {
-      git diff --raw --find-copies-harder HEAD^.. --diff-filter=$1 \
-        | sed 's/^:\w\+\s\w\+\s\w\+\.\+\s\w\+\.\+\s\w\+\t//'
-    }
-
-    if [ -n "$( readChanges TUX )" ]; then
-      git diff
-      echo "Unexpected file change!!"
-      echo
-      git diff --raw --find-copies-harder HEAD^.. --diff-filter=TUX
-      exit 1
-    fi
-
-    files=$( readChanges D )
-    if [ -n "$files" ]; then
-      echo Removed:
-      echo "$files" | indent
-      expect0 $tf rm $files -recursive
-    fi
-
-    files=$( readChanges M )
-    if [ "$files" ]; then
-      echo Modified:
-      echo "$files" | indent
-      expect0 $tf checkout $files
-    fi
-
-    renames=$( readChanges R )
-    if [ "$renames" ]; then
-      echo Renamed:
-      echo "$renames" | while read -r file; do
-        echo $file | indent
-        expect0 $tf rename $file
-      done
-    fi
-
-    files=$( readChanges CA | sed 's/^[^\t]\+\t//' )
-    if [ -n "$files" ]; then
-      echo Added:
-      echo "$files" | indent
-      expect0 $tf add $files
-    fi
-
-    echo Checking in...
-    lastInLine=""
-    while read -r inLine; do
-      lastInLine="$inLine"
-      echo $inLine | indent
-    done < <( $tf checkin -comment:@$tmpDir/comment -recursive . )
-    if [ ${?} -ne 0 ]; then exit 1; fi
-
-    # add a note about the changeset number
-    changeSetNumber=$( echo $lastInLine  | sed 's/Changeset \#\([0-9]\+\) checked in./\1/' )
-    if [ -z $changeSetNumber ]; then
-      echo Could not detect the changeset number!
-      echo Last checkin output line: $lastInLine
-      exitCode=1
-      return
-    fi
-
-    echo Moving TFS head and marking the commit with a note
-    expect0 git checkout tfs
-    expect0 git merge --ff-only $hash
-
-    echo -n $changeSetNumber "$( seq -s " " $( expr 10 - length $changeSetNumber ) | sed 's/[0-9]//g' )" $DOMAIN\\$username \
-      $( date "+%b %d, %Y %r" ) "" > $tmpDir/changeset
-    cat $tmpDir/comment >> $tmpDir/changeset
-    expect0 git notes add -F $tmpDir/changeset $hash
-
-    decNumber
-    if [ $number -eq 0 ]; then break; fi
-  done
-}
-
-fetch () {
-  echo Fetching from TFS
-  lastCommit=$( git log -1 --format=%H tfs )
-  lastChangeset=$( git notes show  $lastCommit | grep -Po '^\d+' | tail -1 )
-  if [ -z "$lastChangeset" ]; then
-    echo Last changeset could not determined. Probably the last commit is missing a tf note. Commit: $lastCommit
-    exitCode=7
-    return
-  fi
-  echo Last synchronized changeset: $lastChangeset
-
-  latestCommit=$( $tf history -stopAfter:1 -recursive . | grep -oP '^\d+' )
-  echo Latest changeset on TFS: $latestCommit
-  if [ $lastChangeset -eq $latestCommit ]; then
-    echo Nothing to fetch
-    return
-  fi
-
-  tfHistoryCmd="$tf history -recursive -version:C$lastChangeset~C$latestCommit ."
-  echo $tfHistoryCmd
-  tfHistory=$( $tfHistoryCmd | tac | grep -P '^\d+\s{2,}\w+' )
-  echo $( expr $( echo "$tfHistory" | wc -l ) - 1 ) changeset\(s\) to fetch
-
-
-  echo Making files read-only
-  find -type f -exec chmod -w {} \;
-  expect0 chmod -R +w .git
-
-  while read -r line; do
-    changeset=$( echo $line | grep -Po '^\d+' )
-    if [ -z $changeset -o $changeset -le $lastChangeset ]; then continue; fi
-
-    echo
-    echo Fetching \"$line\"...
-
-    comment=$tmpDir/comment
-    echo $line | grep -Po '(?<=\d:\d\d:\d\d [AP]M ).+$' > $comment
-    if [ ! -s $comment ]; then
-      if [ $( echo $line | grep -Pc '\d+:\d+:\d+ [AP]M ?$' ) -eq 0 ]; then
-        echo "Could not parse comment!"
-        echo $line
-        echo Here is entire history:
-        echo "$tfHistory"
-        exit 1
-      fi
-      echo Comment is empty, so using the entire line as a commit comment
-      echo "$line" > $comment
-    fi
-
-    expect0 $tf get -version:$changeset -recursive . | indent
-
-    echo Committing to Git...
-    author=$( echo $line | grep -Po '(?<=COMPONENTONE\\)[^\s]+' )
-    expect0 git add .
-    expect0 git commit -F $comment "--author=\"$author <$author@$domain>\"" | indent
-
-    # adding a note
-    echo "$line" > $tmpDir/note
-    git notes add -F $tmpDir/note $( git log -1 --format=%H )
-
-    decNumber
-    if [ $number -eq 0 ]; then break; fi
-  done < <( echo "$tfHistory" )
-
-  echo Making files writable
-  find -type f -exec chmod +w {} \;
-}
-
-pull() {
-  fetch
-  echo Rebasing
-  git checkout master | indent
-  git rebase tfs  | indent
-}
-
 init() {
-  root=$( git rev-parse --show-toplevel 2>&1 )
-  if [ ${?} -ne 0 ]; then
+  local root=$( git rev-parse --show-toplevel 2>&1 )
+  if [ $? -ne 0 ]; then
     git status
-    exitCode=123
-    return
+    exit 123
   fi
+
+  readValue() {
+	eval export $1=$( git config tf.$1 )
+	if [ -z "${!1}" ]; then
+	  echo git tf is not configured. Config value "tf.$1" not found.
+	  exit 2
+	fi
+  }
+  readValue domain
+  readValue DOMAIN
+  readValue username
 
   pushd "$root" > /dev/null
-  readConfig
 
   if [ "$( git status -s )" ]; then
     echo "Worktree is dirty"
-    exitCode=6
-    return
+    exit 6
   fi
 
-  if [ -z $noChecks ]; then
+  if [ -z "$noChecks" ]; then
     echo Checking TFS status. There must be no pending changes...
-    workfold=$( $tf workfold . )
-    if [ ${?} -ne 0 ]; then
-      exitCode=124
-      return
+    local workfold=$( $tf workfold . )
+    if [ $? -ne 0 ]; then
+      exit 124
     fi
     if [ $( echo "$workfold" | grep -Pc ": $PWD$" ) -ne 1 ]; then
       echo TF mapped folder does not match git root work folder!
       echo Expected: $PWD
       echo Actual: $( echo "$workfold" | tail -n +4 | grep -Po ': .+$' )
-      exitCode=5
-      return
+      exit 5
     fi
     if [ "$( $tf status )" != "There are no matching pending changes." ]; then
       echo "TFS status is dirty!"
@@ -254,13 +63,7 @@ init() {
     fi
   fi
 
-  status=$( git status -sb )
-  lineN=$( echo $status | wc -l )
-  if [ $lineN -ne 1 ]; then
-    echo "Worktree is dirty!"
-    exit 1
-  fi
-  origBranch=$( echo $status | sed 's/##\s\(\w\+\)/\1/' )
+  origBranch=$( git status -sb | sed 's/##\s\(\w\+\)/\1/' )
   if [ "$origBranch" = "HEAD (no branch)" ]; then
     echo Not currently on any branch
     exit 1
@@ -268,37 +71,24 @@ init() {
   expect0 git checkout tfs
   mkdir -p $tmpDir
 }
-readOptions() {
-  args=`getopt -o vCn --long verbose,debug,noChecks,number: -n git-tf -- "$@"`
-  if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 10 ; fi
-  set -- $args
-  while true ; do
-    if [ "$1" != "--" -a "$debug" ]; then
-      echo "Option found: " $1
-    fi
-    case "$1" in
-      -v|--verbose) verbose=true; shift ;;
-      -d|--debug) debug=true; shift ;;
-      -C|--noChecks) noChecks=true; shift ;;
-      -n|--number) number=$2; shift 2 ;;
-      --) shift ; break ;;
-      *) echo "Internal error!" ; exit 1 ;;
-    esac
-  done
-}
+
 main() {
-  case $1 in
-    push)  push  ;;
-    fetch) fetch ;;
-    pull)  pull  ;;
-    hello) echo Hello. I\'m git-tfs. ;;
-    *)     usage ;;
-  esac
+  if [ "$command" ]; then
+    export gittf=$( readlink -f ${BASH_SOURCE[0]} )
+    if [ -a "$gittf-$command" ]; then
+      $gittf-$command $@
+      return
+    fi
+  fi
+
+  usage
 }
 finalize() {
   popd > /dev/null
   rm -rf $tmpDir
-  expect0 git checkout $origBranch
+  if [ "$origBranch" ]; then
+    expect0 git checkout $origBranch
+  fi
 }
 
 ## Utils
@@ -309,9 +99,9 @@ expect0() {
   fi
 
   out=$( eval "$@ 2>&1" )
-  if [ ${?} -ne 0 ]; then
+  if [ $? -ne 0 ]; then
     echo "$out"
-    exit ${?}
+    exit $?
   fi
 }
 
@@ -343,15 +133,36 @@ min() {
   fi
 }
 
+export -f expect0 debug decNumber indent min
 if [ -z "$1" -o "$1" == "--help" ]; then
   usage
   exit
 fi
 
-readOptions $@
-init
-if [ $exitCode -eq 0 ]; then
-  main $@
+# read options
+args=`getopt -u -o vCn --long verbose,debug,noChecks,number: -n git-tf -- "$@"`
+if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 10 ; fi
+set -- $args
+while true ; do
+  if [ "$1" != "--" -a "$debug" ]; then
+    echo "Option found: " $1
+  fi
+  case "$1" in
+    -v|--verbose) verbose=true; shift ;;
+    -d|--debug) debug=true; shift ;;
+    -C|--noChecks) noChecks=true; shift ;;
+    -n|--number) number=$2; shift 2 ;;
+    --) shift ; break ;;
+    *) echo "Internal error!" ; exit 1 ;;
+  esac
+done
+if [ $# -gt 0 ]; then
+  command=$1
+  shift
 fi
+
+init
+main $@
+exitCode=$?
 finalize
 exit $exitCode
