@@ -267,7 +267,7 @@ init() {
 }
 readOptions() {
   lastOption=""
-  for o in $@; do
+  for o; do
     if [ "${o:0:2}" = "--" ]; then
       lastOption=${o:2}
       debug "option found: $lastOption"
@@ -321,9 +321,8 @@ expect0() {
 
 debug() {
   if [ $verbose = true ]; then
-    args=$@
-    for (( i=1; i<=$#; i++ )); do
-      echo ${!i}
+    for i; do
+      echo $i
     done
   fi
 }
