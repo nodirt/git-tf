@@ -18,8 +18,8 @@ fi
 
 tfHistoryCmd="$tf history -recursive -version:C$lastChangeset~C$latestCommit ."
 echo $tfHistoryCmd
-tfHistory=$( $tfHistoryCmd | tac | grep -P '^\d+\s{2,}\w+' )
-echo $( expr $( echo "$tfHistory" | wc -l ) - 1 ) changeset\(s\) to fetch
+tfHistory=$( $tfHistoryCmd | grep -P '^\d+\s{2,}\w+' | tac | tail -n +2 )
+echo $( min $( echo "$tfHistory" | wc -l ) $number ) changeset\(s\) to fetch
 
 
 echo Making files read-only
@@ -28,7 +28,7 @@ expect0 chmod -R +w .git
 
 while read -r line; do
   changeset=$( echo $line | grep -Po '^\d+' )
-  if [ -z $changeset -o $changeset -le $lastChangeset ]; then continue; fi
+  if [ -z $changeset ]; then continue; fi
 
   echo
   echo Fetching \"$line\"...
