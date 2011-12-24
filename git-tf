@@ -281,21 +281,11 @@ readOptions() {
 }
 main() {
   case $1 in
-    push)
-      push
-      ;;
-    fetch)
-      fetch
-      ;;
-    pull)
-      pull
-      ;;
-    hello)
-      echo Hello. I\'m git-tfs.
-      ;;
-    *)
-      usage
-      ;;
+    push)  push  ;;
+    fetch) fetch ;;
+    pull)  pull  ;;
+    hello) echo Hello. I\'m git-tfs. ;;
+    *)     usage ;;
   esac
 }
 finalize() {
