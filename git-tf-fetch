@@ -51,7 +51,7 @@ while read -r line; do
 
   echo Committing to Git...
   author=$( echo $line | grep -Po '(?<=COMPONENTONE\\)[^\s]+' )
-  expect0 git add .
+  expect0 git add -A .
   expect0 git commit -F $comment "--author=\"$author <$author@$domain>\"" | indent
 
   # adding a note
