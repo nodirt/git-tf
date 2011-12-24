@@ -94,7 +94,7 @@ git log $lastCommit.. --format=%H master --reverse | while read hash; do
   expect0 git checkout tfs
   expect0 git merge --ff-only $hash
 
-  echo -n $changeSetNumber "$( seq -s " " $( expr 10 - length $changeSetNumber ) | sed 's/[0-9]//g' )" $DOMAIN\\$username \
+  echo -n $changeSetNumber "$( seq -s " " $( expr 10 - length $changeSetNumber ) | sed 's/[0-9]//g' )" $username \
     $( date "+%b %d, %Y %r" ) "" > $tmpDir/changeset
   cat $tmpDir/comment >> $tmpDir/changeset
   expect0 git notes add -F $tmpDir/changeset $hash

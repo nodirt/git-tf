@@ -35,7 +35,6 @@ init() {
 	fi
   }
   readValue domain
-  readValue DOMAIN
   readValue username
 
   pushd "$root" > /dev/null
