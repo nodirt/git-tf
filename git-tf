@@ -238,6 +238,10 @@ init() {
   if [ -z $noChecks ]; then
     echo Checking TFS status. There must be no pending changes...
     workfold=$( $tf workfold . )
+    if [ ${?} -ne 0 ]; then
+      exitCode=124
+      return
+    fi
     if [ $( echo "$workfold" | grep -Pc ": $PWD$" ) -ne 1 ]; then
       echo TF mapped folder does not match git root work folder!
       echo Expected: $PWD
