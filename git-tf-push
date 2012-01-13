@@ -33,10 +33,11 @@ git log $lastCommit.. --format=%H master --reverse | while read hash; do
 
   readChanges() {
     git diff --raw --find-copies-harder HEAD^.. --diff-filter=$1 \
-      | sed 's/^:\w\+\s\w\+\s\w\+\.\+\s\w\+\.\+\s\w\+\t//'
+      | sed 's/^:\w\+\s\w\+\s\w\+\.\+\s\w\+\.\+\s\w\+\t//' \
+      | sed -r 's/($|^)/"/g' | sed 's/\t/" "/' # quote file names
   }
 
-  if [ -n "$( readChanges TUX )" ]; then
+  if [ "$( readChanges TUX )" ]; then
     git diff
     echo "Unexpected file change!!"
     echo
@@ -45,7 +46,7 @@ git log $lastCommit.. --format=%H master --reverse | while read hash; do
   fi
 
   files=$( readChanges D )
-  if [ -n "$files" ]; then
+  if [ "$files" ]; then
     echo Removed:
     echo "$files" | indent
     expect0 $tf rm $files -recursive
