@@ -50,7 +50,7 @@ while read -r line; do
   expect0 $tf get -version:$changeset -recursive . | indent
 
   echo Committing to Git...
-  author=$( echo $line | grep -Po '(?<=COMPONENTONE\\)[^\s]+' )
+  author=$( echo $line | grep -Po "(?<=$winDomain\\\\)[^\\s]+" )
   expect0 git add -A .
   expect0 git commit -F $comment "--author=\"$author <$author@$domain>\"" | indent
 
