@@ -140,7 +140,7 @@ if [ -z "$1" -o "$1" == "--help" ]; then
 fi
 
 # read options
-args=`getopt -u -o vCn --long verbose,debug,noChecks,number: -n git-tf -- "$@"`
+args=`getopt vCn "$@"`
 if [ $? != 0 ] ; then echo "Terminating..." >&2 ; exit 10 ; fi
 set -- $args
 while true ; do
