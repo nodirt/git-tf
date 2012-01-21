@@ -42,7 +42,7 @@ def fetch(cfg):
       print('Committing to Git...')
       git('add -A .', dryRun = cfg.dryRun)
       git(r'commit --allow-empty-message -m "%s" --author="%s <%s@%s>"' % (comment, author, author, cfg.domain), output = True, dryRun = cfg.dryRun)
-      hash = git('log -1 --format=%H', dryRun = 'abcdef')
+      hash = git('log -1 --format=%H', dryRun = cfg.dryRun and 'abcdef')
 
       # adding a note
       git('notes add -m %s %s' % (changeset, hash), dryRun = cfg.dryRun)
