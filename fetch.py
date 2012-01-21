@@ -30,14 +30,12 @@ def fetch(cfg):
   chmod('.git', True)
   try:
     for entry in history:
-      changeset = entry.get('id')
-      comment = entry.find('comment')
-      comment = not comment is None and comment.text or ''
-      author = entry.get('committer').split('\\')[1].strip()
-      date = parseXmlDatetime(entry.get('date')).ctime()
-      line = ("%s %s %s %s" % (changeset, author, date, comment or '')).strip()
+      changeset = entry['id']
+      comment = entry['comment']
+      author = entry['committer']
+
       print()
-      print('Fetching "%s"...' % line)
+      print('Fetching "%s"...' % entry['line'])
 
       tf('get -version:%s -recursive .' % changeset, output = True)
 

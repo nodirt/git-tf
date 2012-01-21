@@ -14,7 +14,7 @@ def runner(executable = ''):
       return dryRun
 
     result = ''
-    p = proc.Popen(cmd, shell = True, stderr = proc.STDOUT, stdout = proc.PIPE)
+    p = proc.Popen(cmd, shell = True, stderr = proc.PIPE, stdout = proc.PIPE)
 
     while True:
       line = p.stdout.readline()
@@ -34,8 +34,8 @@ def runner(executable = ''):
         return errorValue
       if errorMsg:
         print(errorMsg)
-        quit(1)
-      raise Exception('Command "%s" is completed unsuccessfully' % cmd)
+      print(p.stderr.readall().decode('utf-8'))
+      fail('Command "%s" is completed unsuccessfully' % cmd)
     return result
   return run
 

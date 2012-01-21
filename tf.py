@@ -11,7 +11,7 @@ def _history(args, echo = False):
     comment = not comment is None and comment.text or ''
     committer = entry.get('committer').split('\\')[1].strip()
     date = parseXmlDatetime(entry.get('date')).ctime()
-    line = ("%s %s %s %s" % (id, committer, date, comment)).strip()
+    line = ('%s %s %s %s' % (id, committer, date, comment)).strip()
     return {
       'id': id,
       'comment': comment,
