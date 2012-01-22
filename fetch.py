@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 from tf import *
 
 def fetch(cfg):
