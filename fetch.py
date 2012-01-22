@@ -11,41 +11,42 @@ def fetch(cfg):
   except:
     fail('Last changeset could not determined. Probably the last commit is missing a tf note. Commit: %s' % lastCommit)
 
-  history = tf.history('-stopAfter:1')
-  latestCommit = history[0]['id']
+  latestCommit = tf.history('-stopAfter:1')[0].id
   print('Latest changeset on TFS:', latestCommit)
   if lastChangeset ==  latestCommit:
     print('Nothing to fetch')
     return False
 
-  history = tf.history('-version:C%s~C%s' % (lastChangeset, latestCommit), echo = True)
+  print('Requesting tf history %s..%s' % (lastChangeset, latestCommit))
+  history = tf.history('-version:C%s~C%s' % (lastChangeset, latestCommit))
   history.reverse()
   history.pop(0)
   history = history[:cfg.number]
 
   print('%d changeset(s) to fetch' % len(history))
 
-  print('Making files read-only')
+  if cfg.debug:
+    print('Making files read-only')
   chmod('.', False)
   chmod('.git', True)
   try:
-    for entry in history:
-      changeset = entry['id']
-      comment = entry['comment']
-      author = entry['committer']
+    for i, cs in enumerate(history):
+      printLine()
+      print('Fetching [%d/%d] "%s"...' % (i + 1, len(history), cs.line))
 
-      print()
-      print('Fetching "%s"...' % entry['line'])
+      tf('get -version:%s -recursive .' % cs.id, output = True, dryRun = cfg.dryRun)
 
-      tf('get -version:%s -recursive .' % changeset, output = True)
-
+      comment = cs.comment
+      if not comment:
+        print('The comment is empty. Using changeset number as a comment')
+        comment = str(cs.id)
       print('Committing to Git...')
       git('add -A .', dryRun = cfg.dryRun)
-      git(r'commit --allow-empty-message -m "%s" --author="%s <%s@%s>"' % (comment, author, author, cfg.domain), output = True, dryRun = cfg.dryRun)
+      git(r'commit -m "%s" --author="%s <%s@%s>" --date="%s"' % (comment, cs.committer, cs.committer, cfg.domain, cs.dateIso), output = True, dryRun = cfg.dryRun)
       hash = git('log -1 --format=%H', dryRun = cfg.dryRun and 'abcdef')
 
       # adding a note
-      git('notes add -m %s %s' % (changeset, hash), dryRun = cfg.dryRun)
+      git('notes add -m %s %s' % (cs.id, hash), dryRun = cfg.dryRun)
   finally:
     chmod('.', True)
   return True

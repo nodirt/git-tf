@@ -1,14 +1,14 @@
 import subprocess as proc
 import os, stat, re, datetime
 
-debug = False
+displayCommands = False
 def runner(executable = ''):
-  def run(args, errorMsg = None, errorValue = None, echo = False, output = False, indent = 1, dryRun = None):
+  def run(args, errorMsg = None, errorValue = None, output = False, indent = 1, dryRun = None):
     cmd = args
     if executable:
       cmd = '%s %s' % (executable, cmd)
 
-    if echo or debug:
+    if displayCommands:
       print(cmd)
     if dryRun:
       return dryRun
@@ -20,7 +20,7 @@ def runner(executable = ''):
       line = p.stdout.readline()
       if line != b'':
         line = line.decode('utf-8')
-        if output:
+        if output or displayCommands:
           print('  ' * indent + line)
         result += line
       elif not p.poll() is None:
@@ -87,3 +87,7 @@ def indentPrint(text, indent = 1):
 
 def toCamelCase(str):
   return re.sub(r'\-\w', lambda m: m.group()[1].capitalize(), str)
+
+_terminalHeight, _terminalWidth = [int(x) for x in os.popen('stty size', 'r').read().split()] or [24,80]
+def printLine():
+  print('_' * _terminalWidth)

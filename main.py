@@ -21,7 +21,7 @@ class Configuration(object):
     readValue('username')
 
   def parseArgs(self, args):
-    optlist, args = getopt.getopt(args, 'vCn:', 'verbose debug noChecks dry-run number:'.split())
+    optlist, args = getopt.getopt(args, 'vCn:', 'verbose debug noChecks dry-run number='.split())
     shortToLong = {
       'v': 'verbose',
       'C': 'noChecks',
@@ -38,7 +38,7 @@ class Configuration(object):
       long = toCamelCase(long)
       setattr(self, long, value == '' or value)
 
-    if not self.number is None:
+    if self.number is not None:
       self.number = int(self.number)
 
 cfg = Configuration()
@@ -104,7 +104,7 @@ def main():
   cfg.parseArgs(args)
   if cfg.dryRun:
     print('DRY RUN. Nothing is going to be changed.\n')
-  util.debug = cfg.debug
+  util.displayCommands = cfg.debug
   init()
   runCommand(command, cfg)
 

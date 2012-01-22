@@ -2,15 +2,17 @@ import re, datetime
 from util import *
 from tf import tf
 
-def _push(cfg, hash):
+def _push(cfg, hash, index, total):
   print()
+  printLine()
   git('checkout ' + hash)
-  print('Pushing "%s" to TFS' % git('log -1 --oneline'))
+  print('Pushing [%d/%d] "%s"...' % (index + 1, total, git('log -1 --oneline')))
+
 
   def rawDiff(changeType):
     return git('diff --raw --find-copies-harder HEAD^.. --diff-filter=%s' % changeType)
 
-  def readChanges(changeType, displayChangeType, handler):
+  def readChanges(changeType, displayChangeType):
     def parse(change):
       file = change[change.index('\t'):].strip()
       file = '"' + file.replace('\t','" "') + '"'
@@ -20,7 +22,7 @@ def _push(cfg, hash):
     if files:
       print(displayChangeType + ':')
       indentPrint(files)
-      handler(files)
+      yield files
 
   unknownChanges = rawDiff('TUX')
   if unknownChanges:
@@ -30,29 +32,31 @@ def _push(cfg, hash):
     fail()
 
   def tfmut(args):
-    tf(args, dryRun = cfg.druRun)
-  readChanges('D', 'Removed', lambda files: tfmut('rm -recursive ' + ' '.join(files)))
-  readChanges('M', 'Modified', lambda files: tfmut('checkout ' + ' '.join(files)))
-  def rename(files):
+    tf(args, dryRun = cfg.dryRun)
+
+  for files in readChanges('D', 'Removed'):
+    tfmut('rm -recursive ' + ' '.join(files))
+  for files in readChanges('M', 'Modified'):
+    tfmut('checkout ' + ' '.join(files))
+  for files in readChanges('R', 'Renamed'):
     for file in files:
       tfmut('rename ' + file)
-  readChanges('R', 'Renamed', rename)
-  readChanges('CA', 'Added', lambda files: tfmut('add ' + ' '.join([f.split('\t', 1)[0] for f in files])))
+  for files in readChanges('CA', 'Added'):
+    tfmut('add ' + ' '.join([f.split('\t', 1)[-1] for f in files]))
 
   print('Checking in...')
   comment = git('log -1 --format=%s%n%b').strip()
-
-  checkin = tf('checkin "-comment:%s" -recursive . ' % comment, dryRun = cfg.dryRun and 'Changeset #12345')
+  checkin = tf('checkin "-comment:%s" -recursive . ' % comment, output = True, dryRun = cfg.dryRun and 'Changeset #12345')
   changeSetNumber = re.search(r'^Changeset #(\d+)', checkin, re.M).group(1)
 
   # add a note about the changeset number
-  print('Moving TFS head and marking the commit with a note')
+  print('Moving tfs branch HEAD and marking the commit with a "tf" note')
   git('checkout tfs', dryRun = cfg.dryRun)
   git('merge --ff-only %s' % hash, dryRun = cfg.dryRun)
   git('notes add -m "%s" %s' % (changeSetNumber, hash), dryRun = cfg.dryRun)
 
 def push(cfg):
-  print('Pusing to TFS')
+  print('Pushing to TFS')
   lastCommit = git('log -1 --format=%H tfs')
   lastMasterCommit = git('log master --format=%H -1')
   unmergedCommits = git('log %s.. master --oneline' % lastMasterCommit)
@@ -61,17 +65,6 @@ def push(cfg):
     indentPrint(unmergedCommits)
     fail()
 
-  print('Checking whether there are no unfetched changes on TFS...')
-  latestGitChangeset = re.findall(r'^\d+', git('notes show ' + lastCommit), re.M)[-1]
-  latestTfChangeset = tf.history('-stopafter:1')[0]['id']
-  if int(latestGitChangeset) < int(latestTfChangeset):
-    print('There are unfetched changes on TFS. Fetch and merge them before pushing')
-    print('Latest local changeset:', latestGitChangeset)
-    print('Latest TFS changeset:', latestTfChangeset)
-    fail()
-
-
-  print('Pushing commits')
   print('Last synchronized commit:', git('log -1 --format=%h tfs'))
   commits = git('log %s.. --format=%%H master --reverse' % lastCommit).splitlines()
   commits = commits[:cfg.number]
@@ -79,7 +72,17 @@ def push(cfg):
     print('Nothing to push')
     return
 
-  print('%d commit\(s\) to be pushed:' % len(commits))
+  print('Checking whether there are no unfetched changes on TFS...')
+  latestGitChangeset = re.findall(r'^\d+', git('notes show ' + lastCommit), re.M)[-1]
+  latestTfChangeset = tf.history('-stopafter:1')[0].id
+  if int(latestGitChangeset) < int(latestTfChangeset):
+    print('There are unfetched changes on TFS. Fetch and merge them before pushing')
+    print('Latest local changeset:', latestGitChangeset)
+    print('Latest TFS changeset:', latestTfChangeset)
+    fail()
 
-  for hash in commits:
-    _push(cfg, hash)
+
+  print('%d commit(s) to be pushed:' % len(commits))
+
+  for i, hash in enumerate(commits):
+    _push(cfg, hash, i, len(commits))

@@ -4,24 +4,19 @@ import xml.etree.ElementTree as etree
 git('--version', errorMsg = 'Git not found in $PATH variable')
 tf = runner(git('config tf.cmd', errorValue = 'tf'))
 
-def _history(args, echo = False):
-  def parse(entry):
-    id = entry.get('id')
-    comment = entry.find('comment')
-    comment = not comment is None and comment.text or ''
-    committer = entry.get('committer').split('\\')[1].strip()
-    date = parseXmlDatetime(entry.get('date')).ctime()
-    line = ('%s %s %s %s' % (id, committer, date, comment)).strip()
-    return {
-      'id': id,
-      'comment': comment,
-      'committer': committer,
-      'date': date,
-      'line': line
-    }
+class Changeset(object):
+  def __init__(self, node):
+    self.id = node.get('id')
+    self.comment = node.find('comment')
+    self.comment = self.comment is not None and self.comment.text or ''
+    self.dateIso = node.get('date')
+    self.date = parseXmlDatetime(self.dateIso)
+    self.committer = node.get('committer').split('\\', 1)[-1].strip()
+    self.line = ('%s %s %s %s' % (self.id, self.committer, self.date.ctime(), self.comment)).strip()
 
+def _history(args):
   args = 'history -recursive -format:xml %s .' % args
-  history = etree.fromstring(tf(args, echo = echo))
-  return [parse(changeset) for changeset in history if changeset.tag == 'changeset']
+  history = etree.fromstring(tf(args))
+  return [Changeset(cs) for cs in history if cs.tag == 'changeset']
 
 tf.history = _history
