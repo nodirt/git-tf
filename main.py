@@ -3,7 +3,6 @@ import sys, getopt
 import util
 from tf import *
 
-alloc = Alloc()
 class Configuration(object):
   verbose  = True
   noChecks = False
@@ -46,13 +45,21 @@ def usage():
   print('Usage is not written yet. Sorry.')
 
 def init():
+  free = []
+  class Free(object):
+    def __enter__(self):
+      pass
+    def __exit__(self, _, __, ___):
+      for a in free:
+        a()
+
   root = git('rev-parse --show-toplevel')
 
   cfg.readFromGit()
 
   origDir = os.path.abspath('.')
   os.chdir(root)
-  alloc.append(lambda : os.chdir(origDir))
+  free.append(lambda : os.chdir(origDir))
 
   if git('status -s') != '':
     fail('Worktree is dirty')
@@ -73,9 +80,10 @@ def init():
   if origBranch == 'HEAD (no branch)':
     fail('Not currently on any branch')
   git('checkout tfs')
-  alloc.append(lambda: git('checkout ' + origBranch))
+  free.append(lambda: git('checkout ' + origBranch))
 
   os.environ['GIT_NOTES_REF'] = 'refs/notes/tf'
+  return Free()
 
 allowedCommands = 'fetch pull push'.split()
 def runCommand(command, cfg):
@@ -100,8 +108,8 @@ def main():
   if cfg.dryRun:
     print('DRY RUN. Nothing is going to be changed.\n')
   util.displayCommands = cfg.debug
-  init()
-  runCommand(command, cfg)
+  with init():
+    runCommand(command, cfg)
 
 if __name__ == '__main__':
   exitCode = 0
@@ -109,6 +117,4 @@ if __name__ == '__main__':
     main()
   except GitTfException:
     exitCode = 1
-  finally:
-    alloc.free()
   quit(exitCode)

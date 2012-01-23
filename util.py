@@ -41,17 +41,6 @@ def runner(executable = ''):
 
 git = runner('git')
 
-class Alloc(object):
-  def __init__(self):
-    self.allocs = []
-
-  def append(self, free):
-    self.allocs.append(free)
-
-  def free(self):
-    for a in self.allocs:
-      a()
-
 class GitTfException(Exception):
   pass
 def fail(msg = None):
