@@ -8,7 +8,6 @@ class Configuration(object):
   verbose  = True
   noChecks = False
   debug    = False
-  tmpDir   = '/tmp/git-tf'
   number   = None
   dryRun   = False
 
@@ -77,10 +76,6 @@ def init():
   alloc.append(lambda: git('checkout ' + origBranch))
 
   os.environ['GIT_NOTES_REF'] = 'refs/notes/tf'
-
-  if not os.path.exists(cfg.tmpDir):
-    os.mkdir(cfg.tmpDir)
-  alloc.append(lambda: os.rmdir(cfg.tmpDir))
 
 allowedCommands = 'fetch pull push'.split()
 def runCommand(command, cfg):
