@@ -76,8 +76,8 @@ def init():
     if tf('status') != 'There are no matching pending changes.':
       fail('TFS status is dirty!')
 
-  origBranch = git('status -sb')[3:]
-  if origBranch == 'HEAD (no branch)':
+  origBranch = [b[2:] for b in git('branch').splitlines() if b.startswith('* ')][0]
+  if origBranch == '(no branch)':
     fail('Not currently on any branch')
   git('checkout tfs')
   free.append(lambda: git('checkout ' + origBranch))
