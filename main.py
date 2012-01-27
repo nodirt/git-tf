@@ -62,7 +62,7 @@ def init():
   free.append(lambda : os.chdir(origDir))
 
   if git('status -s') != '':
-    fail('Worktree is dirty')
+    fail('Worktree is dirty. Stash your changes before proceeding.')
 
   if not cfg.noChecks:
     print('Checking TFS status. There must be no pending changes...')
