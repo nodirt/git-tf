@@ -5,7 +5,7 @@ def fetch(cfg):
   lastCommit = git('log -1 --format=%H tfs')
 
   try:
-    lastChangeset = re.findall(r'^\d+', git('notes show $lastCommit'), re.M)[-1]
+    lastChangeset = re.findall(r'^\d+', git('notes show'), re.M)[-1]
     print('Last synchronized changeset:', lastChangeset)
   except:
     lastChangeset = None
