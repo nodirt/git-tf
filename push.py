@@ -1,6 +1,5 @@
 import re, datetime
-from util import *
-from tf import tf
+from core import *
 
 def _push(cfg, hash, index, total):
   print()

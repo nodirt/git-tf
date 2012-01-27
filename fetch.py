@@ -1,4 +1,4 @@
-from tf import *
+from core import *
 
 def fetch(cfg):
   print('Fetching from TFS')

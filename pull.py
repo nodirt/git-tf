@@ -1,4 +1,4 @@
-from util import *
+from core import *
 from fetch import fetch
 
 def pull(cfg):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys, getopt
-import util
-from tf import *
+import core
+from core import *
 
 class Configuration(object):
   verbose  = True
@@ -114,7 +114,7 @@ def main():
   cfg.parseArgs(args)
   if cfg.dryRun:
     print('DRY RUN. Nothing is going to be changed.\n')
-  util.displayCommands = cfg.debug
+  core.displayCommands = cfg.debug
   with init():
     runCommand(command, cfg)
 
