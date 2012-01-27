@@ -35,6 +35,7 @@ def fetch(cfg):
     print('Making files read-only')
   chmod('.', False)
   chmod('.git', True)
+  lastSyncedChangeset = lastChangeset
   try:
     for i, cs in enumerate(history):
       printLine()
@@ -70,6 +71,13 @@ def fetch(cfg):
 
       # adding a note
       git('notes add -m %s %s' % (cs.id, hash), dryRun = cfg.dryRun)
+      lastSyncedChangeset = cs.id
+  except:
+    print('Rolling back to the last synchronized changeset: %s' % lastSyncedChangeset)
+    fetch(lastSyncedChangeset)
+    git('reset --hard')
+    git('clean -fd')
+    raise
   finally:
     chmod('.', True)
   return True
