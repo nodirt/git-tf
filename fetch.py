@@ -72,9 +72,10 @@ def fetch(cfg):
         git('notes add -m %s' % cs.id, dryRun = cfg.dryRun)
         lastSyncedChangeset = cs.id
     except:
-      print('Rolling back to the last synchronized changeset: %s' % lastSyncedChangeset)
-      fetch(lastSyncedChangeset)
-      git('reset --hard')
-      git('clean -fd')
+      if not cfg.dryRun:
+        print('Rolling back to the last synchronized changeset: %s' % lastSyncedChangeset)
+        fetch(lastSyncedChangeset)
+        git('reset --hard')
+        git('clean -fd')
       raise
   return True

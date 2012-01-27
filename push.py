@@ -33,19 +33,27 @@ def _push(cfg, hash, index, total):
   def tfmut(args):
     tf(args, dryRun = cfg.dryRun)
 
-  for files in readChanges('D', 'Removed'):
-    tfmut('rm -recursive ' + ' '.join(files))
-  for files in readChanges('M', 'Modified'):
-    tfmut('checkout ' + ' '.join(files))
-  for files in readChanges('R', 'Renamed'):
-    for file in files:
-      tfmut('rename ' + file)
-  for files in readChanges('CA', 'Added'):
-    tfmut('add ' + ' '.join([f.split('\t', 1)[-1] for f in files]))
+  try:
+    for files in readChanges('D', 'Removed'):
+      tfmut('rm -recursive ' + ' '.join(files))
+    for files in readChanges('M', 'Modified'):
+      tfmut('checkout ' + ' '.join(files))
+    for files in readChanges('R', 'Renamed'):
+      for file in files:
+        tfmut('rename ' + file)
+    for files in readChanges('CA', 'Added'):
+      tfmut('add ' + ' '.join([f.split('\t', 1)[-1] for f in files]))
 
-  print('Checking in...')
-  comment = git('log -1 --format=%s%n%b').strip()
-  checkin = tf('checkin "-comment:%s" -recursive . ' % comment, output = True, dryRun = cfg.dryRun and 'Changeset #12345')
+    print('Checking in...')
+    comment = git('log -1 --format=%s%n%b').strip()
+    checkin = tf('checkin "-comment:%s" -recursive . ' % comment, output = True, dryRun = cfg.dryRun and 'Changeset #12345')
+  except:
+    if not cfg.dryRun:
+      print('Restoring Git and TFS state...')
+      with ReadOnlyWorktree():
+        tf('undo -recursive .')
+      git('checkout -f tfs')
+    raise
   changeSetNumber = re.search(r'^Changeset #(\d+)', checkin, re.M).group(1)
 
   # add a note about the changeset number
