@@ -76,11 +76,18 @@ def init():
     if tf('status') != 'There are no matching pending changes.':
       fail('TFS status is dirty!')
 
-  origBranch = [b[2:] for b in git('branch').splitlines() if b.startswith('* ')][0]
-  if origBranch == '(no branch)':
+  def getCurBranch():
+    return [b[2:] for b in git('branch').splitlines() if b.startswith('* ')][0]
+  noBranch = '(no branch)'
+  def checkoutBranch(branch):
+    curBranch = getCurBranch()
+    if curBranch != branch and curBranch != noBranch:
+      git('checkout ' + branch)
+  origBranch = getCurBranch()
+  if origBranch == noBranch:
     fail('Not currently on any branch')
-  git('checkout tfs')
-  free.append(lambda: git('checkout ' + origBranch))
+  checkoutBranch('tfs')
+  free.append(lambda: checkoutBranch(origBranch))
 
   os.environ['GIT_NOTES_REF'] = 'refs/notes/tf'
   return Free()
