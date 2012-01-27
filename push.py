@@ -51,7 +51,7 @@ def _push(cfg, hash, index, total):
     if not cfg.dryRun:
       print('Restoring Git and TFS state...')
       with ReadOnlyWorktree():
-        tf('undo -recursive .')
+        tf('undo -recursive .', allowedExitCodes = [0, 100])
       git('checkout -f tfs')
     raise
   changeSetNumber = re.search(r'^Changeset #(\d+)', checkin, re.M).group(1)

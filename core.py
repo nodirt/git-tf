@@ -4,7 +4,7 @@ import xml.etree.ElementTree as etree
 
 displayCommands = False
 def runner(executable = ''):
-  def run(args, errorMsg = None, errorValue = None, output = False, indent = 1, dryRun = None):
+  def run(args, allowedExitCodes = [0], errorMsg = None, errorValue = None, output = False, indent = 1, dryRun = None):
     cmd = args
     if executable:
       cmd = '%s %s' % (executable, cmd)
@@ -30,13 +30,13 @@ def runner(executable = ''):
     if len(result) > 0 and result[-1] == '\n':
       result = result[:-1]
 
-    if p.returncode:
+    if p.returncode not in allowedExitCodes:
       if errorValue != None:
         return errorValue
       if errorMsg:
         print(errorMsg)
       print(p.stderr.readall().decode('utf-8'))
-      fail('Command "%s" is completed unsuccessfully' % cmd)
+      fail('Command "%s" exited with code %s' % (cmd, p.returncode))
     return result
   return run
 
