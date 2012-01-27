@@ -67,10 +67,7 @@ def fetch(cfg):
         comment = str(cs.id)
       git('add -A .', dryRun = cfg.dryRun)
       git(r'commit -m "%s" --author="%s <%s@%s>" --date="%s"' % (comment, cs.committer, cs.committer, cfg.domain, cs.dateIso), output = True, dryRun = cfg.dryRun)
-      hash = git('log -1 --format=%H', dryRun = cfg.dryRun and 'abcdef')
-
-      # adding a note
-      git('notes add -m %s %s' % (cs.id, hash), dryRun = cfg.dryRun)
+      git('notes add -m %s' % cs.id, dryRun = cfg.dryRun)
       lastSyncedChangeset = cs.id
   except:
     print('Rolling back to the last synchronized changeset: %s' % lastSyncedChangeset)
