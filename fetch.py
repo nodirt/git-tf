@@ -28,8 +28,26 @@ def fetch(cfg):
   def gitHasChanges():
     return git('status -s')
 
-  def fetch(version):
-    return tf('get -version:%s -recursive .' % version, output = True, dryRun = cfg.dryRun)
+  def fetch(version, output = True):
+    return tf('get -version:%s -recursive .' % version, output = output, dryRun = cfg.dryRun)
+
+  def repair(lastCommit, lastChangeset, changesetToFetch):
+    print('But it may mean we have a problem, so let\s check it.')
+    print('Trying to fetch the previous changeset and repeat...')
+    fetch(lastChangeset, output = False)
+
+    if gitHasChanges():
+      print('git-tf state is corrupted: the commit %s was expected to match changeset %s.' % (lastCommit, lastChangeset))
+      print('You can try to "git reset" to a non-corrupted commit and fetch/pull again.')
+      unpushed = git('log tfs..master --oneline')
+      if unpushed:
+        print('You have unpushed commits:')
+        indentPrint(unpushed)
+        print('Cherry-pick them when you finish repairing.')
+      fail()
+
+    print('No, there is no problem. Now fetching %s again...' % changesetToFetch)
+    fetch(changesetToFetch, output = False)
 
   if cfg.debug:
     print('Making files read-only')
@@ -42,24 +60,11 @@ def fetch(cfg):
       print('Fetching [%d/%d] "%s"...' % (i + 1, len(history), cs.line))
       fetch(cs.id)
       if not gitHasChanges():
-        print('Nothing new is fetched. TFS thinks that it is up to date.')
-        if i:
-          fail('Please, try it again with --debug option and report the output to the developer.')
-        print('Trying to fetch the previous changeset and repeat.')
-        fetch(lastChangeset)
-
-        def didNotHelp():
-          fail('It did not help. The problem is that TFS thinks that it is up to date,' +
-            'but it is not according to Git. Try to fetch an older version from TFS and fetch/pull again.' +
-            ('Alternatively try to fetch version %s completely:' % lastChangeset) +
-             'tf get -version:%s -force -overwrite -all' % lastChangeset
-          )
-
-        if gitHasChanges(): didNotHelp()
-        print('Now fetching %s again...' % cs.id)
-        fetch(cs.id)
-        if not gitHasChanges(): didNotHelp()
-
+        print('From the Git\'s point of view, there is nothing new to commit in the changeset %s.' % cs.id)
+        print('Sometimes it happens with TFS branching.')
+        if not i:
+          repair(lastCommit, lastChangeset, cs.id)
+        print('An empty commit will be made.')
       print('Committing to Git...')
       comment = cs.comment
       if not comment:
