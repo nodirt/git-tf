@@ -9,7 +9,7 @@ def runner(executable = ''):
       cmd = '%s %s' % (executable, cmd)
 
     if displayCommands:
-      print(cmd)
+      print('$ ' + cmd)
     if dryRun:
       return dryRun
 
