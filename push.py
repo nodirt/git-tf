@@ -5,7 +5,7 @@ def _push(cfg, hash, index, total):
   print()
   printLine()
   git('checkout ' + hash)
-  print('Pushing [%d/%d] "%s"...' % (index + 1, total, git('log -1 --oneline')))
+  print('Pushing [%d/%d] %s...' % (index + 1, total, git(r'log -1 --format="%h \"%s\""')))
 
 
   def rawDiff(changeType):
