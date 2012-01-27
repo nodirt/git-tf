@@ -32,7 +32,7 @@ def fetch(cfg):
     return tf('get -version:%s -recursive .' % version, output = output, dryRun = cfg.dryRun)
 
   def repair(lastCommit, lastChangeset, changesetToFetch):
-    print('But it may mean we have a problem, so let\s check it.')
+    print('But it may mean we have a problem, so let\'s check it.')
     print('Trying to fetch the previous changeset and repeat...')
     fetch(lastChangeset, output = False)
 
@@ -49,37 +49,32 @@ def fetch(cfg):
     print('No, there is no problem. Now fetching %s again...' % changesetToFetch)
     fetch(changesetToFetch, output = False)
 
-  if cfg.debug:
-    print('Making files read-only')
-  chmod('.', False)
-  chmod('.git', True)
   lastSyncedChangeset = lastChangeset
-  try:
-    for i, cs in enumerate(history):
-      printLine()
-      print('Fetching [%d/%d] "%s"...' % (i + 1, len(history), cs.line))
-      fetch(cs.id)
-      if not gitHasChanges():
-        print('From the Git\'s point of view, there is nothing new to commit in the changeset %s.' % cs.id)
-        print('Sometimes it happens with TFS branching.')
-        if not i:
-          repair(lastCommit, lastChangeset, cs.id)
-        print('An empty commit will be made.')
-      print('Committing to Git...')
-      comment = cs.comment
-      if not comment:
-        print('The comment is empty. Using changeset number as a comment')
-        comment = str(cs.id)
-      git('add -A .', dryRun = cfg.dryRun)
-      git(r'commit -m "%s" --author="%s <%s@%s>" --date="%s"' % (comment, cs.committer, cs.committer, cfg.domain, cs.dateIso), output = True, dryRun = cfg.dryRun)
-      git('notes add -m %s' % cs.id, dryRun = cfg.dryRun)
-      lastSyncedChangeset = cs.id
-  except:
-    print('Rolling back to the last synchronized changeset: %s' % lastSyncedChangeset)
-    fetch(lastSyncedChangeset)
-    git('reset --hard')
-    git('clean -fd')
-    raise
-  finally:
-    chmod('.', True)
+  with ReadOnlyWorktree(cfg.debug):
+    try:
+      for i, cs in enumerate(history):
+        printLine()
+        print('Fetching [%d/%d] "%s"...' % (i + 1, len(history), cs.line))
+        fetch(cs.id)
+        if not gitHasChanges():
+          print('From the Git\'s point of view, there is nothing new to commit in the changeset %s.' % cs.id)
+          print('Sometimes it happens with TFS branching.')
+          if not i:
+            repair(lastCommit, lastChangeset, cs.id)
+          print('An empty commit will be made.')
+        print('Committing to Git...')
+        comment = cs.comment
+        if not comment:
+          print('The comment is empty. Using changeset number as a comment')
+          comment = str(cs.id)
+        git('add -A .', dryRun = cfg.dryRun)
+        git(r'commit -m "%s" --author="%s <%s@%s>" --date="%s"' % (comment, cs.committer, cs.committer, cfg.domain, cs.dateIso), output = True, dryRun = cfg.dryRun)
+        git('notes add -m %s' % cs.id, dryRun = cfg.dryRun)
+        lastSyncedChangeset = cs.id
+    except:
+      print('Rolling back to the last synchronized changeset: %s' % lastSyncedChangeset)
+      fetch(lastSyncedChangeset)
+      git('reset --hard')
+      git('clean -fd')
+      raise
   return True

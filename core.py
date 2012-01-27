@@ -66,6 +66,19 @@ def _history(args):
 
 tf.history = _history
 
+class ReadOnlyWorktree(object):
+  def __init__(self, output = False):
+    self.output = output
+  def __enter__(self):
+    if self.output:
+      print('Making files read-only')
+    chmod('.', False)
+    chmod('.git', True)
+  def __exit__(self, _, __, ___):
+    if self.output:
+      print('Making files writable')
+    chmod('.', True)
+
 #######      the rest       #######
 
 class GitTfException(Exception):
