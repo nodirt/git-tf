@@ -22,7 +22,7 @@ def runner(executable = ''):
       if line != b'':
         line = line.decode('utf-8')
         if output or displayCommands:
-          print('  ' * indent + line)
+          print('  ' * indent + line, end = '')
         result += line
       elif not p.poll() is None:
         break
