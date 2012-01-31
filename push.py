@@ -1,4 +1,5 @@
 import re, datetime
+import os
 from core import *
 
 def _push(cfg, hash, index, total):
@@ -12,16 +13,16 @@ def _push(cfg, hash, index, total):
     return git('diff --raw --find-copies-harder HEAD^.. --diff-filter=%s' % changeType)
 
   def readChanges(changeType, displayChangeType):
-    def parse(change):
-      file = change[change.index('\t'):].strip()
-      file = '"' + file.replace('\t','" "') + '"'
-      return file
-
-    files = [parse(change) for change in rawDiff(changeType).splitlines()]
-    if files:
+    changes = [change[change.index('\t'):].strip().split('\t') for change in rawDiff(changeType).splitlines()]
+    if changes:
       print(displayChangeType + ':')
-      indentPrint(files)
-      yield files
+      indentPrint([' -> '.join(f) for f in changes])
+      yield changes
+
+  def joinFiles(files):
+    return '"' + '" "'.join(files) + '"'
+  def joinChanges(changes):
+    return ' '.join(map(joinFiles, changes))
 
   unknownChanges = rawDiff('TUX')
   if unknownChanges:
@@ -34,15 +35,23 @@ def _push(cfg, hash, index, total):
     tf(args, dryRun = cfg.dryRun)
 
   try:
-    for files in readChanges('D', 'Removed'):
-      tfmut('rm -recursive ' + ' '.join(files))
-    for files in readChanges('M', 'Modified'):
-      tfmut('checkout ' + ' '.join(files))
-    for files in readChanges('R', 'Renamed'):
-      for file in files:
-        tfmut('rename ' + file)
-    for files in readChanges('CA', 'Added'):
-      tfmut('add ' + ' '.join([f.split('\t', 1)[-1] for f in files]))
+    for c in readChanges('D', 'Removed'):
+      tfmut('rm -recursive ' + joinChanges(c))
+    for c in readChanges('M', 'Modified'):
+      tfmut('checkout ' + joinChanges(c))
+    for changes in readChanges('R', 'Renamed'):
+      for files in changes:
+        src, dest = files
+        if not cfg.dryRun:
+          os.rename(dest, src)
+        try:
+          tfmut('rename ' + joinFiles(files))
+        except:
+          if not cfg.dryRun:
+            os.rename(src, dest)
+          raise
+    for c in readChanges('CA', 'Added'):
+      tfmut('add ' + joinChanges([files[-1:] for files in c]))
 
     print('Checking in...')
     comment = git('log -1 --format=%s%n%b').strip()
