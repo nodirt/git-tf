@@ -82,7 +82,7 @@ def push(cfg):
     fail()
 
   print('Last synchronized commit:', git('log -1 --format=%h tfs'))
-  commits = git('log %s.. --format=%%H master --reverse' % lastCommit).splitlines()
+  commits = git('log %s.. --format=%%H master --reverse --first-parent' % lastCommit).splitlines()
   commits = commits[:cfg.number]
   if not commits:
     print('Nothing to push')
