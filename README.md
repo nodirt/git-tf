@@ -24,14 +24,14 @@ that is last synchronized with TFS. In some sense "tfs" branch is
 analogous to "origin".
 
 3. When you are ready to sync with the server, you first fetch or pull changes
-
+   
         $ git tf pull
    
    This fetches each TFS changeset individually and commits to the tfs.
    Each commit is marked with a changeset it is associated with.
 
 4. Then you push your local changes to TFS
-
+   
 	$ git tf push
     
     This pushes each your pending commit to the TFS. The list of pending 
@@ -83,7 +83,7 @@ local folder.
 
 1. First of all you have to configure a [profile](http://msdn.microsoft.com/en-us/library/gg413276.aspx):
    There is an example:
-
+   
 	$ tf profile -new MyProxyProfile \
 	-string:serverUrl=http://tfs01.xyz.example.com \
 	-string:userName=john \
@@ -97,19 +97,19 @@ local folder.
 	-boolean:tfProxyEnabled=true \
 	-string:tfProxyUrl=http://tfproxy01.xyz.example.com \
 	-boolean:acceptUntrustedCertificates=true`
-
+   
    Make sure that acceptUntrustedCertificates is set to true if you have
    a secure connection (https). I wasted a lot of time trying to fix it.
    Keep in mind that you must scape any character that your shell may
    interpret (like a space) in double quotes.
 
 2. Then you should create a [workspace](http://msdn.microsoft.com/en-us/library/y901w7se(v=vs.80).aspx).
-Example:
-
+   Example:
+   
 	$ tf workspace -new -collection:http://tfs01.xyz.example.com MyWorkspace
 
 3. Then you finally map a server folder
-
+   
 	$ tf workfold -map -workspace:MyWorkspace $/MyProject/Main ~/projects/myProject
 
 GIT Configuration
@@ -122,20 +122,20 @@ acceptable, then do the following:
 
 1. Download the TFS changeset you would like your git history to start
 from. For example, you want to fetch history starting from 12345:
-
+   
 	$ tf get -version:C12345 -recursive .
 
 2. Init a git repository and commit the fetched files
-
+   
 	$ git init
 	$ git commit -am "Initial commit"
 
 3. Mark the commit with a note
-
+   
 	$ git notes --ref=tf add -m "12345"
 
 4. Configure git-tf. Example:
-
+   
 	$ git config tf.username john
 	$ git config tf.domain mycompany.com
 	$ git config tf.winDomain MYCOMPANY
