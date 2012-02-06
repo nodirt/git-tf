@@ -27,8 +27,8 @@ analogous to "origin".
    
         $ git tf pull
    
-   This fetches each TFS changeset individually and commits to the tfs.
-   Each commit is marked with a changeset it is associated with.
+    This fetches each TFS changeset individually and commits to the tfs.
+    Each commit is marked with a changeset it is associated with.
 
 4. Then you push your local changes to TFS
    
@@ -98,10 +98,10 @@ local folder.
         -string:tfProxyUrl=http://tfproxy01.xyz.example.com \
         -boolean:acceptUntrustedCertificates=true
    
-   Make sure that acceptUntrustedCertificates is set to true if you have
-   a secure connection (https). I wasted a lot of time trying to fix it.
-   Keep in mind that you must scape any character that your shell may
-   interpret (like a space) in double quotes.
+    Make sure that acceptUntrustedCertificates is set to true if you have
+    a secure connection (https). I wasted a lot of time trying to fix it.
+    Keep in mind that you must scape any character that your shell may
+    interpret (like a space) in double quotes.
 
 2. Then you should create a [workspace.][msdnWorkspace]
    Example:
