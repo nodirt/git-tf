@@ -67,6 +67,7 @@ def fetch(cfg):
         if not comment:
           print('The comment is empty. Using changeset number as a comment')
           comment = str(cs.id)
+        comment = comment.replace('"', '\\"').replace("'", "\\'")
         git('add -A .', dryRun = cfg.dryRun)
         git(r'commit -m "%s" --author="%s <%s@%s>" --date="%s"' % (comment, cs.committer, cs.committer, cfg.domain, cs.dateIso), output = True, dryRun = cfg.dryRun)
         git('notes add -m %s' % cs.id, dryRun = cfg.dryRun)
