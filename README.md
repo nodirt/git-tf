@@ -32,7 +32,7 @@ analogous to "origin".
 
 4. Then you push your local changes to TFS
    
-	$ git tf push
+        $ git tf push
     
     This pushes each your pending commit to the TFS. The list of pending 
     commits can be displays this with `$ git log tfs..master`
@@ -84,33 +84,33 @@ local folder.
 1. First of all you have to configure a [profile](http://msdn.microsoft.com/en-us/library/gg413276.aspx):
    There is an example:
    
-	$ tf profile -new MyProxyProfile \
-	-string:serverUrl=http://tfs01.xyz.example.com \
-	-string:userName=john \
-	-string:userDomain=company \
-	-string:password=password \
-	-boolean:httpProxyEnabled=true \
-	-string:httpProxyUrl=http://proxy01.xyz.example.com \
-	-boolean:httpProxyEnableAuth=true \
-	-string:httpProxyUsername=john \
-	-string:httpProxyPassword=proxy_password \
-	-boolean:tfProxyEnabled=true \
-	-string:tfProxyUrl=http://tfproxy01.xyz.example.com \
-	-boolean:acceptUntrustedCertificates=true`
+        $ tf profile -new MyProxyProfile \
+        -string:serverUrl=http://tfs01.xyz.example.com \
+        -string:userName=john \
+        -string:userDomain=company \
+        -string:password=password \
+        -boolean:httpProxyEnabled=true \
+        -string:httpProxyUrl=http://proxy01.xyz.example.com \
+        -boolean:httpProxyEnableAuth=true \
+        -string:httpProxyUsername=john \
+        -string:httpProxyPassword=proxy_password \
+        -boolean:tfProxyEnabled=true \
+        -string:tfProxyUrl=http://tfproxy01.xyz.example.com \
+        -boolean:acceptUntrustedCertificates=true
    
    Make sure that acceptUntrustedCertificates is set to true if you have
    a secure connection (https). I wasted a lot of time trying to fix it.
    Keep in mind that you must scape any character that your shell may
    interpret (like a space) in double quotes.
 
-2. Then you should create a [workspace](http://msdn.microsoft.com/en-us/library/y901w7se(v=vs.80).aspx).
+2. Then you should create a [workspace.][msdnWorkspace]
    Example:
    
-	$ tf workspace -new -collection:http://tfs01.xyz.example.com MyWorkspace
+        $ tf workspace -new -collection:http://tfs01.xyz.example.com MyWorkspace
 
 3. Then you finally map a server folder
    
-	$ tf workfold -map -workspace:MyWorkspace $/MyProject/Main ~/projects/myProject
+        $ tf workfold -map -workspace:MyWorkspace $/MyProject/Main ~/projects/myProject
 
 GIT Configuration
 -----------------
@@ -123,22 +123,22 @@ acceptable, then do the following:
 1. Download the TFS changeset you would like your git history to start
 from. For example, you want to fetch history starting from 12345:
    
-	$ tf get -version:C12345 -recursive .
+        $ tf get -version:C12345 -recursive .
 
 2. Init a git repository and commit the fetched files
    
-	$ git init
-	$ git commit -am "Initial commit"
+        $ git init
+        $ git commit -am "Initial commit"
 
 3. Mark the commit with a note
    
-	$ git notes --ref=tf add -m "12345"
+        $ git notes --ref=tf add -m "12345"
 
 4. Configure git-tf. Example:
    
-	$ git config tf.username john
-	$ git config tf.domain mycompany.com
-	$ git config tf.winDomain MYCOMPANY
+        $ git config tf.username john
+        $ git config tf.domain mycompany.com
+        $ git config tf.winDomain MYCOMPANY
 
 Yes, two domains sounds weird, but that's how TFS works. The first
 domain is what is written after @ sign: john@company.com.
@@ -153,7 +153,7 @@ For example:
 
     $ git config tf.cmd 'tf -profile:MyProxyProfile'
 
-Details [here.](http://msdn.microsoft.com/en-us/library/hh190726.aspx)
+Details are [here.](http://msdn.microsoft.com/en-us/library/hh190726.aspx)
 
 The configuration is complete. Now you can fetch the remaining changesets
 
@@ -176,3 +176,6 @@ If you use merge, you will screw your TFS history up when you push and
 your co-workers won't be happy.
 
 -Nodir
+
+
+[msdnWorkspace]: http://msdn.microsoft.com/en-us/library/y901w7se(v=vs.80).aspx
