@@ -2,6 +2,6 @@
 import sys, runpy, os
 me = sys.argv[0]
 if os.path.islink(me):
-  me = os.readlink(me)
+    me = os.readlink(me)
 main = os.path.join(os.path.dirname(me), "main.py")
 runpy.run_path(main, run_name = '__main__')
