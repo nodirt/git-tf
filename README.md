@@ -1,52 +1,53 @@
 git-tf
 ======
 
-git-tf is a basic two ways bridge between TFS and Git.
+git-tf is a basic two-way bridge between TFS and Git.
 
 Features
 --------
 
-git-tf can do two basic things: fetch and push. In addition it can
-pull, but it is just fetch+rebase. These three operations are enough
-to work. I use git-tf everyday to do my job, it works reliable for me.
-Most of my co-workers even don't know that I use git for work. I still
-can enjoy such git features as stash, rebase, local branches, etc.
+git-tf can do two basic things: `fetch`/`pull` and `push`. These  operations are enough to work. 
 
-I didn't implement "git tf clone", so the initial
-installation/configuration requires a lot of things to do, 
-but once you do it, git-tf is easy to use:
+git-tf works transparently. Other TFS users may not even know, that you use Git. 
+
+Here is the typical git-tf usage workflow:
 
 1. You work in the master branch offline as you normally do with a
-local git repository.
+local git repository. You can stash, rebase, make local branches, etc.
 
-2. The tfs branch HEAD points to the git commit in the master branch
-that is last synchronized with TFS. In some sense "tfs" branch is
-analogous to "origin".
-
-3. When you are ready to sync with the server, you first fetch or pull changes
+3. When you are ready to sync with the server, you first `fetch` or `pull` changes.
    
         $ git tf pull
    
-    This fetches each TFS changeset individually and commits to the tfs.
-    Each commit is marked with a changeset it is associated with.
+    This retrieves each TFS changeset individually and commits them into the _tfs_ branch.
+    Each commit is marked with a changeset number.
 
-4. Then you push your local changes to TFS
+    If you used `fetch`, then `git rebase` your changes instead of merging. It is **important**, see below.
+
+4. Then you `push` your local changes to TFS
    
         $ git tf push
     
-    This pushes each your pending commit to the TFS. The list of pending 
-    commits can be displays this with `$ git log tfs..master`
+    This sends each of your pending commits to the TFS individually. To see the list of pending
+    commits use `$ git log tfs..` while you are on _master_ branch,
 
-git tf fetch, pull and push commands move the "tfs" branch HEAD. Each
-git commit synchronized with TFS has a "git note" in the "tf"
-namespace. Each note contains a TFS changeset number, a comment, a
-user and date (currently git commit dates are different from tfs
-changeset dates). To see tfs notes execute
+`clone` is not implemented yet, so the initial installation/configuration is manual.
+
+How it works
+------------
+
+The _tfs_ branch HEAD points to the git commit in the _master_ branch
+that is last synchronized with TFS. In some sense _tfs_ branch is
+analogous to _origin_.
+
+Each git commit synchronized with TFS has a [git note](http://schacon.github.com/git/git-notes.html) in the _tf_
+namespace. Each note has a TFS changeset number. To see the notes execute
 
     $ git log --show-notes=tf
 
-Note that the commit pointed by "tfs" branch HEAD must always have a
-note. Without it git-tf won't be able to sync.
+The commit pointed by _tfs_ branch HEAD must always have a note. Without it git-tf won't be able to sync.
+
+`fetch`, `pull` and `push` commands move the _tfs_ branch.
 
 Installation
 ------------
@@ -63,8 +64,8 @@ git-tf by calling
 
 ### Team Explorer Anywhere installation
 
-I use [Team Explorer Anywhere](http://www.microsoft.com/download/en/details.aspx?displaylang=en&id=4240) to access TFS from a non-Windows OS (mine
-is Ubuntu).
+[Team Explorer Anywhere](http://www.microsoft.com/download/en/details.aspx?displaylang=en&id=4240) is
+a cross-platform client for TFS.
 
 Once it is installed, you have to accept their EULA:
 
@@ -74,14 +75,13 @@ It is a paid product, but you can use it for 180 days:
 
     $ tf productkey -trial
 
-The product key is stored at `~/.microsoft/Team Explorer/10.0/`
+The product key is stored at _~/.microsoft/Team Explorer/10.0/_
 
 ### TFS Configuration
 
-Skip this section if you have already mapped a TFS server folder to a
-local folder.
+Skip this section if you have already mapped a TFS server folder to a local folder.
 
-1. First of all you have to configure a [profile](http://msdn.microsoft.com/en-us/library/gg413276.aspx):
+1. Configure a [profile](http://msdn.microsoft.com/en-us/library/gg413276.aspx):
    There is an example:
    
         $ tf profile -new MyProxyProfile \
@@ -98,17 +98,15 @@ local folder.
         -string:tfProxyUrl=http://tfproxy01.xyz.example.com \
         -boolean:acceptUntrustedCertificates=true
    
-    Make sure that acceptUntrustedCertificates is set to true if you have
-    a secure connection (https). I wasted a lot of time trying to fix it.
-    Keep in mind that you must scape any character that your shell may
-    interpret (like a space) in double quotes.
+   Make sure that _acceptUntrustedCertificates_ is set to _true_ if you have
+   a secure connection (https). Keep in mind that you must escape any character that your shell may
+   interpret (like space) in double quotes.
 
-2. Then you should create a [workspace.][msdnWorkspace]
-   Example:
-   
+2. Create a [workspace.][msdnWorkspace]
+
         $ tf workspace -new -collection:http://tfs01.xyz.example.com MyWorkspace
 
-3. Then you finally map a server folder
+3. Map a server folder to a local folder:
    
         $ tf workfold -map -workspace:MyWorkspace $/MyProject/Main ~/projects/myProject
 
@@ -117,10 +115,10 @@ GIT Configuration
 
 To start using git-tf you should have a git commit corresponding to a
 TFS changeset. The changeset is not required to be latest changeset.
-If loosing your git change history, and download it from TFS is
+If loosing your git change history, and downloading it from TFS is
 acceptable, then do the following:
 
-1. Download the TFS changeset you would like your git history to start
+1. Get the version from TFS that you would like your git history to start
 from. For example, you want to fetch history starting from 12345:
    
         $ tf get -version:C12345 -recursive .
@@ -138,14 +136,12 @@ from. For example, you want to fetch history starting from 12345:
    
         $ git config tf.username john
         $ git config tf.domain mycompany.com
-        $ git config tf.winDomain MYCOMPANY
 
-Yes, two domains sounds weird, but that's how TFS works. The first
-domain is what is written after @ sign: john@company.com.
-The second domain is your full name on TFS: MYCOMPANY\john
-Perhaps I'll get rid of the second domain in some future.
+5. Set _tfs_ branch as an upstream branch for _master_.
 
-There is also a `tf.cmd` config value with which you can override the default
+        $ git branch --set-upstream master tfs
+
+There is also a _tf.cmd_ config value with which you can override the default
 call to the Team Explorer Anywhere executable. This can by usefull to configure
 the authentication for your TFS connection.
 
@@ -153,7 +149,7 @@ For example:
 
     $ git config tf.cmd 'tf -profile:MyProxyProfile'
 
-Details are [here.](http://msdn.microsoft.com/en-us/library/hh190726.aspx)
+Details are [here](http://msdn.microsoft.com/en-us/library/hh190726.aspx).
 
 The configuration is complete. Now you can fetch the remaining changesets
 
@@ -161,7 +157,8 @@ The configuration is complete. Now you can fetch the remaining changesets
 
 Be patient. TFS works way slower than Git.
 
-### DO NOT MERGE
+DO NOT MERGE
+------------
 
 Never use `git merge tfs` on master if you have called `fetch` instead
 of `pull`. You should always rebase:
@@ -169,13 +166,10 @@ of `pull`. You should always rebase:
     # on branch master
     $ git rebase tfs
 
-Rebase is similar to merge, but instead of applying "their" changes on
-your changes, it applies your changes on their changes.
+Rebase is similar to merge, but instead of applying _their_ changes on
+your changes, it applies your changes on _their_ changes.
 
 If you use merge, you will screw your TFS history up when you push and
-your co-workers won't be happy.
-
--Nodir
-
+your team won't be happy.
 
 [msdnWorkspace]: http://msdn.microsoft.com/en-us/library/y901w7se(v=vs.80).aspx
