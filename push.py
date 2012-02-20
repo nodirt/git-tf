@@ -1,8 +1,7 @@
-import re, datetime
-import os
+#!/usr/bin/env python3
 from core import *
 
-def _push(cfg, hash, index, total):
+def _push(app, hash, index, total):
     print()
     printLine()
     git('checkout ' + hash)
@@ -32,7 +31,7 @@ def _push(cfg, hash, index, total):
         fail()
 
     def tfmut(args):
-        tf(args, dryRun = cfg.dryRun)
+        tf(args, dryRun = app.dryRun)
 
     try:
         for c in readChanges('D', 'Removed'):
@@ -42,12 +41,12 @@ def _push(cfg, hash, index, total):
         for changes in readChanges('R', 'Renamed'):
             for files in changes:
                 src, dest = files
-                if not cfg.dryRun:
+                if not app.dryRun:
                     os.rename(dest, src)
                 try:
                     tfmut('rename ' + joinFiles(files))
                 except:
-                    if not cfg.dryRun:
+                    if not app.dryRun:
                         os.rename(src, dest)
                     raise
         for c in readChanges('CA', 'Added'):
@@ -55,9 +54,9 @@ def _push(cfg, hash, index, total):
 
         print('Checking in...')
         comment = git('log -1 --format=%s%n%b').strip()
-        checkin = tf('checkin "-comment:%s" -recursive . ' % comment, output = True, dryRun = cfg.dryRun and 'Changeset #12345')
+        checkin = tf('checkin "-comment:%s" -recursive . ' % comment, output = True, dryRun = app.dryRun and 'Changeset #12345')
     except:
-        if not cfg.dryRun:
+        if not app.dryRun:
             print('Restoring Git and TFS state...')
             with ReadOnlyWorktree():
                 tf('undo -recursive .', allowedExitCodes = [0, 100])
@@ -67,11 +66,11 @@ def _push(cfg, hash, index, total):
 
     # add a note about the changeset number
     print('Moving tfs branch HEAD and marking the commit with a "tf" note')
-    git('checkout tfs', dryRun = cfg.dryRun)
-    git('merge --ff-only %s' % hash, dryRun = cfg.dryRun)
-    git('notes add -m "%s" %s' % (changeSetNumber, hash), dryRun = cfg.dryRun)
+    git('checkout tfs', dryRun = app.dryRun)
+    git('merge --ff-only %s' % hash, dryRun = app.dryRun)
+    git('notes add -m "%s" %s' % (changeSetNumber, hash), dryRun = app.dryRun)
 
-def push(cfg):
+def push(app):
     print('Pushing to TFS')
     lastCommit = git('log -1 --format=%H tfs')
     lastMasterCommit = git('log master --format=%H -1')
@@ -83,7 +82,7 @@ def push(cfg):
 
     print('Last synchronized commit:', git('log -1 --format=%h tfs'))
     commits = git('log %s.. --format=%%H master --reverse --first-parent' % lastCommit).splitlines()
-    commits = commits[:cfg.number]
+    commits = commits[:app.number]
     if not commits:
         print('Nothing to push')
         return
@@ -101,4 +100,7 @@ def push(cfg):
     print('%d commit(s) to be pushed:' % len(commits))
 
     for i, hash in enumerate(commits):
-        _push(cfg, hash, i, len(commits))
+        _push(app, hash, i, len(commits))
+
+if __name__ == '__main__':
+    App.run(push)

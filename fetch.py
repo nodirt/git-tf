@@ -1,6 +1,7 @@
+#!/usr/bin/env python3
 from core import *
 
-def fetch(cfg):
+def fetch(app):
     print('Fetching from TFS')
     lastCommit = git('log -1 --format=%H tfs')
 
@@ -21,7 +22,7 @@ def fetch(cfg):
     history = tf.history('-version:C%s~C%s' % (lastChangeset, latestCommit))
     history.reverse()
     history.pop(0)
-    history = history[:cfg.number]
+    history = history[:app.number]
 
     print('%d changeset(s) to fetch' % len(history))
 
@@ -29,7 +30,7 @@ def fetch(cfg):
         return git('status -s')
 
     def fetch(version, output = True):
-        return tf('get -version:%s -recursive .' % version, output = output, dryRun = cfg.dryRun)
+        return tf('get -version:%s -recursive .' % version, output = output, dryRun = app.dryRun)
 
     def repair(lastCommit, lastChangeset, changesetToFetch):
         print('But it may mean we have a problem, so let\'s check it.')
@@ -50,7 +51,7 @@ def fetch(cfg):
         fetch(changesetToFetch, output = False)
 
     lastSyncedChangeset = lastChangeset
-    with ReadOnlyWorktree(cfg.debug):
+    with ReadOnlyWorktree(app.debug):
         try:
             for i, cs in enumerate(history):
                 printLine()
@@ -68,15 +69,18 @@ def fetch(cfg):
                     print('The comment is empty. Using changeset number as a comment')
                     comment = str(cs.id)
                 comment = comment.replace('"', '\\"')
-                git('add -A .', dryRun = cfg.dryRun)
-                git(r'commit --allow-empty -m "%s" --author="%s <%s@%s>" --date="%s"' % (comment, cs.committer, cs.committer, cfg.domain, cs.dateIso), output = True, dryRun = cfg.dryRun)
-                git('notes add -m %s' % cs.id, dryRun = cfg.dryRun)
+                git('add -A .', dryRun = app.dryRun)
+                git(r'commit --allow-empty -m "%s" --author="%s <%s@%s>" --date="%s"' % (comment, cs.committer, cs.committer, app.domain, cs.dateIso), output = True, dryRun = app.dryRun)
+                git('notes add -m %s' % cs.id, dryRun = app.dryRun)
                 lastSyncedChangeset = cs.id
         except:
-            if not cfg.dryRun:
+            if not app.dryRun:
                 print('Rolling back to the last synchronized changeset: %s' % lastSyncedChangeset)
                 fetch(lastSyncedChangeset)
                 git('reset --hard')
                 git('clean -fd')
             raise
     return True
+
+if __name__ == '__main__':
+    App.run(fetch)

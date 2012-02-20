@@ -1,15 +1,14 @@
 import subprocess as proc
-import os, stat, re, datetime
+import sys, os, stat, re, datetime, getopt
 import xml.etree.ElementTree as etree
 
-displayCommands = False
 def runner(executable = ''):
     def run(args, allowedExitCodes = [0], errorMsg = None, errorValue = None, output = False, indent = 1, dryRun = None):
         cmd = args
         if executable:
             cmd = '%s %s' % (executable, cmd)
 
-        if displayCommands:
+        if runner.displayCommands:
             print('$ ' + cmd)
         if dryRun:
             return dryRun
@@ -21,7 +20,7 @@ def runner(executable = ''):
             line = p.stdout.readline()
             if line != b'':
                 line = line.decode('utf-8')
-                if output or displayCommands:
+                if output or runner.displayCommands:
                     print('  ' * indent + line, end = '')
                 result += line
             elif not p.poll() is None:
@@ -39,7 +38,7 @@ def runner(executable = ''):
             fail('Command "%s" exited with code %s' % (cmd, p.returncode))
         return result
     return run
-
+runner.displayCommands = False
 #######      GIT       #######
 
 git = runner('git')
@@ -79,10 +78,119 @@ class ReadOnlyWorktree(object):
             print('Making files writable')
         chmod('.', True)
 
+######       App           #######
+
+class App():
+    verbose  = True
+    debug    = False
+    dryRun   = False
+    noChecks = False
+    number = 0
+
+    def __init__(self):
+        self._free = []
+        self.args = sys.argv[1:]
+
+    def __enter__(self):
+        self.parseArgs(self.args)
+        if self.dryRun:
+            print('DRY RUN. Nothing is going to be changed.\n')
+        runner.displayCommands = self.debug
+
+        root = git('rev-parse --show-toplevel')
+
+        def readCfgValue(name):
+            value = git('config tf.%s' % name, errorMsg = 'git tf is not configured. Config value "%s" not found.' % name)
+            setattr(self, name, value)
+
+        readCfgValue('domain')
+        readCfgValue('username')
+
+        origDir = os.path.abspath('.')
+        os.chdir(root)
+        self._free.append(lambda : os.chdir(origDir))
+
+        if git('status -s') != '':
+            fail('Worktree is dirty. Stash your changes before proceeding.')
+
+        if not self.noChecks:
+            print('Checking TFS status. There must be no pending changes...')
+            workfold = tf('workfold .')
+            if workfold.find(root) == -1:
+                print('TF mapped folder does not match git root work folder!')
+                print('Expected: %s' % root)
+                print('Actual: %s' % workfold.splitlines()[3].split(': ')[1])
+                fail()
+
+            if tf('status') != 'There are no matching pending changes.':
+                fail('TFS status is dirty!')
+
+        def getCurBranch():
+            return [b[2:] for b in git('branch').splitlines() if b.startswith('* ')][0]
+        noBranch = '(no branch)'
+        def checkoutBranch(branch):
+            curBranch = getCurBranch()
+            if curBranch != branch and curBranch != noBranch:
+                git('checkout ' + branch)
+        origBranch = getCurBranch()
+        if origBranch == noBranch:
+            fail('Not currently on any branch')
+        checkoutBranch('tfs')
+        self._free.append(lambda: checkoutBranch(origBranch))
+
+        os.environ['GIT_NOTES_REF'] = 'refs/notes/tf'
+
+    def __exit__(self, _, __, ___):
+        for a in self._free:
+            a()
+
+    @staticmethod
+    def run(body):
+        def _run():
+            with App() as app:
+                body(app)
+        return GitTfException.run(_run)
+
+
+
+    def parseArgs(self, args):
+        optlist, args = getopt.getopt(args, 'vCn:', 'verbose debug noChecks dry-run number='.split())
+        shortToLong = {
+            'v': 'verbose',
+            'C': 'noChecks',
+            'n': 'number'
+        }
+
+        for arg, value in optlist:
+            if arg[1] != '-':
+                long = shortToLong.get(arg[1:])
+                if not long: fail('Unknown option ' + arg)
+            else:
+                long = arg[2:]
+
+            long = toCamelCase(long)
+            setattr(self, long, value == '' or value)
+
+        if self.number is not None:
+            self.number = int(self.number)
+
+def getCommandPath(name):
+    me = sys.argv[0]
+    if os.path.islink(me):
+        me = os.readlink(me)
+    return os.path.join(os.path.dirname(me), 'git-tf-' + name)
+
 #######      the rest       #######
 
 class GitTfException(Exception):
-    pass
+    @staticmethod
+    def run(body):
+        try:
+            return body()
+        except GitTfException:
+            quit(1)
+
+
 def fail(msg = None):
     if msg: print(msg)
     raise GitTfException(None)
