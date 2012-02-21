@@ -85,7 +85,7 @@ class App:
     debug    = False
     dryRun   = False
     noChecks = False
-    number = 0
+    number   = None
 
     def __init__(self):
         self._free = []
