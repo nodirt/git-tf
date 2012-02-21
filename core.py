@@ -1,14 +1,19 @@
 import subprocess as proc
-import sys, os, stat, re, datetime, getopt
+import sys, os, stat, re, datetime, argparse
 import xml.etree.ElementTree as etree
+
+os.environ['GIT_NOTES_REF'] = 'refs/notes/tf'
+
+_curCommand = None
 
 def runner(executable = ''):
     def run(args, allowedExitCodes = [0], errorMsg = None, errorValue = None, output = False, indent = 1, dryRun = None):
+        verbose = _curCommand and _curCommand.args.verbose > 1
         cmd = args
         if executable:
             cmd = '%s %s' % (executable, cmd)
 
-        if runner.displayCommands:
+        if verbose:
             print('$ ' + cmd)
         if dryRun:
             return dryRun
@@ -20,7 +25,7 @@ def runner(executable = ''):
             line = p.stdout.readline()
             if line != b'':
                 line = line.decode('utf-8')
-                if output or runner.displayCommands:
+                if output or verbose:
                     print('  ' * indent + line, end = '')
                 result += line
             elif not p.poll() is None:
@@ -38,7 +43,7 @@ def runner(executable = ''):
             fail('Command "%s" exited with code %s' % (cmd, p.returncode))
         return result
     return run
-runner.displayCommands = False
+
 #######      GIT       #######
 
 git = runner('git')
@@ -80,40 +85,31 @@ class ReadOnlyWorktree(object):
 
 ######       App           #######
 
-class App:
-    verbose  = True
-    debug    = False
-    dryRun   = False
-    noChecks = False
-    number   = None
-
+class Command:
     def __init__(self):
         self._free = []
-        self.args = sys.argv[1:]
 
-    def __enter__(self):
-        self.parseArgs(self.args)
-        if self.dryRun:
-            print('DRY RUN. Nothing is going to be changed.\n')
-        runner.displayCommands = self.debug
+    def initArgParser(self, parser):
+        parser.add_argument('-v', '--verbose', action='count', help='be verbous', default=0)
+        parser.add_argument('-C', '--noChecks', action='store_true', help='skip long checks, such as TFS status')
+        parser.add_argument('--dryRun', action='store_true', help='do not make any changes')
 
+    def readConfigValue(self, name):
+        return git('config tf.%s' % name, errorMsg = 'git tf is not configured. Config value "%s" not found.' % name)
+
+    def moveToRootDir(self):
         root = git('rev-parse --show-toplevel')
-
-        def readCfgValue(name):
-            value = git('config tf.%s' % name, errorMsg = 'git tf is not configured. Config value "%s" not found.' % name)
-            setattr(self, name, value)
-
-        readCfgValue('domain')
-        readCfgValue('username')
-
         origDir = os.path.abspath('.')
         os.chdir(root)
         self._free.append(lambda : os.chdir(origDir))
 
+    def checkStatus(self, checkTfs=None):
         if git('status -s') != '':
             fail('Worktree is dirty. Stash your changes before proceeding.')
 
-        if not self.noChecks:
+        root = git('rev-parse --show-toplevel')
+
+        if checkTfs is True or not self.args.noChecks:
             print('Checking TFS status. There must be no pending changes...')
             workfold = tf('workfold .')
             if workfold.find(root) == -1:
@@ -125,6 +121,7 @@ class App:
             if tf('status') != 'There are no matching pending changes.':
                 fail('TFS status is dirty!')
 
+    def switchToTfsBranch(self):
         def getCurBranch():
             return [b[2:] for b in git('branch').splitlines() if b.startswith('* ')][0]
         noBranch = '(no branch)'
@@ -138,63 +135,54 @@ class App:
         checkoutBranch('tfs')
         self._free.append(lambda: checkoutBranch(origBranch))
 
-        os.environ['GIT_NOTES_REF'] = 'refs/notes/tf'
+    def __enter__(self):
+        self.moveToRootDir()
+        self.checkStatus()
+        self.switchToTfsBranch()
 
-    def __exit__(self, _, __, ___):
+    def __exit__(self, *rest):
         for a in self._free:
             a()
 
-    @staticmethod
-    def run(body):
-        def _run():
-            app = App()
-            with app:
-                body(app)
-        return GitTfException.run(_run)
+    def _run(self):
+        pass
 
+    def runWithArgs(self, args):
+        if args.verbose:
+            print('Parsed arguments:')
+            indentPrint(str(args))
+            print()
 
+        if args.dryRun:
+            print('DRY RUN. Nothing is going to be changed.\n')
+        self.args = args
 
-    def parseArgs(self, args):
-        optlist, args = getopt.getopt(args, 'vCn:', 'verbose debug noChecks dry-run number='.split())
-        shortToLong = {
-            'v': 'verbose',
-            'C': 'noChecks',
-            'n': 'number'
-        }
-
-        for arg, value in optlist:
-            if arg[1] != '-':
-                long = shortToLong.get(arg[1:])
-                if not long: fail('Unknown option ' + arg)
-            else:
-                long = arg[2:]
-
-            long = toCamelCase(long)
-            setattr(self, long, value == '' or value)
-
-        if self.number is not None:
-            self.number = int(self.number)
-
-def getCommandPath(name):
-    me = sys.argv[0]
-    if os.path.islink(me):
-        me = os.readlink(me)
-    return os.path.join(os.path.dirname(me), 'git-tf-' + name)
-
-#######      the rest       #######
-
-class GitTfException(Exception):
-    @staticmethod
-    def run(body):
+        global _curCommand
+        if _curCommand:
+            raise AssertionError('Only one Command can run at a time')
+        _curCommand = self
         try:
-            return body()
+            with self:
+                self._run()
         except GitTfException:
             quit(1)
+        finally:
+            _curCommand = None
 
+    def run(self):
+        parser = argparse.ArgumentParser(description=type(self).__doc__)
+        self.initArgParser(parser)
+        self.runWithArgs(parser.parse_args())
+
+
+class GitTfException(Exception):
+    pass
 
 def fail(msg = None):
     if msg: print(msg)
     raise GitTfException(None)
+
+#######      util       #######
 
 def parseXmlDatetime(str):
     return datetime.datetime.strptime(str, '%Y-%m-%dT%H:%M:%S.%f%z')
