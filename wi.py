@@ -6,6 +6,29 @@ noteNamespace = 'tf.wi'
 class wi(Command):
     """Associate a commit with a TFS workitem."""
 
+    def argParserCtorArgs(self):
+        args = Command.argParserCtorArgs(self)
+        args['epilog'] = """
+
+Examples:
+
+Associate workitems 123 and 456 with a HEAD commit:
+    $ git tf wi 123
+    $ git tf wi 456
+
+Show associated workitems:
+    $ git tf wi
+    123,456
+
+Remove workitem 123 association:
+    $ git tf wi -d 123
+
+Remove all workitem associations:
+    $ git tf wi -d
+        """
+        return args
+
+
     def __enter__(self):
         self.moveToRootDir()
         pass
@@ -18,7 +41,7 @@ class wi(Command):
         parser.add_argument('-d', '--delete', action='store_true',
             help='Remove work item association.')
         parser.add_argument('workitem', type=int, nargs='?',
-            help='Workitem number')
+            help='Workitem ID')
 
 
     def _run(self):

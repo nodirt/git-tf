@@ -1,5 +1,5 @@
 import subprocess as proc
-import sys, os, stat, re, datetime, argparse
+import os, stat, re, datetime, argparse
 import xml.etree.ElementTree as etree
 
 os.environ['GIT_NOTES_REF'] = 'refs/notes/tf'
@@ -89,6 +89,9 @@ class Command:
     def __init__(self):
         self._free = []
 
+    def argParserCtorArgs(self):
+        return dict(description=type(self).__doc__, formatter_class=argparse.RawTextHelpFormatter)
+
     def initArgParser(self, parser):
         parser.add_argument('-v', '--verbose', action='count', help='be verbous', default=0)
         parser.set_defaults(cmd=self, dryRun=False)
@@ -164,7 +167,7 @@ class Command:
             _curCommand = None
 
     def run(self):
-        parser = argparse.ArgumentParser(description=type(self).__doc__)
+        parser = argparse.ArgumentParser(**self.argParserCtorArgs())
         self.initArgParser(parser)
         self.runWithArgs(parser.parse_args())
 

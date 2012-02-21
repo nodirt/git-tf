@@ -10,7 +10,9 @@ parsers = argParser.add_subparsers(title='Commands:')
 for m in [pull, fetch, push, wi]:
     commandType = getattr(m, m.__name__)
     cmd = commandType()
-    parser = parsers.add_parser(m.__name__, help=commandType.__doc__, description=commandType.__doc__)
+    ctorArgs = cmd.argParserCtorArgs()
+    ctorArgs['help'] = ctorArgs['description']
+    parser = parsers.add_parser(m.__name__, **ctorArgs)
     cmd.initArgParser(parser)
 
 args = argParser.parse_args()
