@@ -107,17 +107,8 @@ class Command:
         if git('status -s') != '':
             fail('Worktree is dirty. Stash your changes before proceeding.')
 
-        root = git('rev-parse --show-toplevel')
-
         if checkTfs is True or not self.args.noChecks:
             print('Checking TFS status. There must be no pending changes...')
-            workfold = tf('workfold .')
-            if workfold.find(root) == -1:
-                print('TF mapped folder does not match git root work folder!')
-                print('Expected: %s' % root)
-                print('Actual: %s' % workfold.splitlines()[3].split(': ')[1])
-                fail()
-
             if tf('status') != 'There are no matching pending changes.':
                 fail('TFS status is dirty!')
 
