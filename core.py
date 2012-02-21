@@ -91,6 +91,9 @@ class Command:
 
     def initArgParser(self, parser):
         parser.add_argument('-v', '--verbose', action='count', help='be verbous', default=0)
+        parser.set_defaults(cmd=self, dryRun=False)
+        self._initArgParser(parser)
+    def _initArgParser(self, parser):
         parser.add_argument('-C', '--noChecks', action='store_true', help='skip long checks, such as TFS status')
         parser.add_argument('--dryRun', action='store_true', help='do not make any changes')
 
