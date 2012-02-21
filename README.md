@@ -132,7 +132,6 @@ from. For example, you want to fetch history starting from 12345:
 
 4. Configure git-tf. Example:
    
-        $ git config tf.username john
         $ git config tf.domain mycompany.com
 
 5. Set _tfs_ branch as an upstream branch for _master_.
