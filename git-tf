@@ -14,7 +14,7 @@ def main():
         usage()
         return
 
-    sys.argv[0] += command
+    sys.argv[0] += '-' + command
     try:
         return runpy.run_module(command, run_name='__main__')
     except ImportError:
