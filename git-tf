@@ -6,7 +6,7 @@ def usage():
     print('Usage is not written yet. Sorry.')
 
 def main():
-    if len(sys.argv) < 1:
+    if len(sys.argv) <= 1:
         usage()
         return
     command = sys.argv.pop(1)
