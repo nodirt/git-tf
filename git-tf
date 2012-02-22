@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 __doc__ = """Simple two-way Git-TFS bridge"""
 
-import argparse
+import sys
 from core import *
 import fetch, pull, push, wi
 
@@ -15,5 +15,8 @@ for m in [pull, fetch, push, wi]:
     parser = parsers.add_parser(m.__name__, **ctorArgs)
     cmd.initArgParser(parser)
 
-args = argParser.parse_args()
-args.cmd.runWithArgs(args)
+if len(sys.argv) <= 1:
+    argParser.print_help()
+else:
+    args = argParser.parse_args()
+    args.cmd.runWithArgs(args)
