@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from core import *
+import wi
 
 class push(Command):
     """Push pending commits to TFS."""
@@ -65,7 +66,10 @@ class push(Command):
 
             print('Checking in...')
             comment = git('log -1 --format=%s%n%b').strip()
-            checkin = tf('checkin "-comment:%s" -recursive . ' % comment, output = True, dryRun = dryRun and 'Changeset #12345')
+            workitems = git('notes --ref=%s show %s' % (wi.noteNamespace, hash), errorValue='')
+            if workitems:
+                workitems = '"-associate:%s"' % workitems
+            checkin = tf('checkin "-comment:%s" -recursive %s .' % (comment, workitems), output = True, dryRun = dryRun and 'Changeset #12345')
         except:
             if not dryRun:
                 print('Restoring Git and TFS state...')
