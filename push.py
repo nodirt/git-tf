@@ -11,6 +11,11 @@ class push(Command):
         parser.addDryRun()
         parser.addNumber('maximum number of changesets to push')
 
+    def __enter__(self):
+        self.moveToRootDir()
+        self.checkStatus()
+        self.switchToTfsBranch()
+
     def _push(self, hash, index, total):
         dryRun = self.args.dryRun
         print()

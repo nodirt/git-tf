@@ -10,6 +10,11 @@ class fetch(Command):
         parser.addDryRun()
         parser.addNumber('maximum number of changesets to fetch')
 
+    def __enter__(self):
+        self.moveToRootDir()
+        self.checkStatus()
+        self.switchToTfsBranch()
+
     def _run(self):
         args = self.args
         domain = self.readConfigValue('domain')

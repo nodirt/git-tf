@@ -134,9 +134,7 @@ class Command:
         self._free.append(lambda: checkoutBranch(origBranch))
 
     def __enter__(self):
-        self.moveToRootDir()
-        self.checkStatus()
-        self.switchToTfsBranch()
+        pass
 
     def __exit__(self, *rest):
         for a in self._free:

@@ -28,11 +28,6 @@ Remove all workitem associations:
         """
         return args
 
-
-    def __enter__(self):
-        self.moveToRootDir()
-        pass
-
     def _initArgParser(self, parser):
         parser.addVerbose()
         parser.add_argument('-c', '--commit', default='HEAD',
