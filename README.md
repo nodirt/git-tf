@@ -4,7 +4,7 @@ git-tf - simple two-way bridge between TFS and Git
 Features
 --------
 
-git-tf can do two basic things: `fetch`/`pull` and `push`. These  operations are enough to work. 
+git-tf can do two basic things: `fetch`/`pull` and `push`. Also you can associate a commit with _TFS workitems_.
 
 git-tf works transparently. Other TFS users may not even know, that you use Git. 
 
@@ -12,6 +12,12 @@ Here is the typical git-tf usage workflow:
 
 1. You work in the master branch offline as you normally do with a
 local git repository. You can stash, rebase, make local branches, etc.
+
+2. If a commit is associated with a TFS workitem, you use `wi` command to mark:
+
+        $ git tf wi 1234
+
+    This marks the HEAD commit with the workitem 1234.
 
 3. When you are ready to sync with the server, you first `fetch` or `pull` changes.
    
@@ -26,8 +32,10 @@ local git repository. You can stash, rebase, make local branches, etc.
    
         $ git tf push
     
-    This sends each of your pending commits to the TFS individually. To see the list of pending
-    commits use `$ git log tfs..` while you are on _master_ branch,
+    This sends each of your pending commits to TFS individually. If a commit was associated with workitems,
+    then the created changeset is associated with them automatically.
+
+    To see the list of pending commits use `$ git log tfs..` while you are on _master_ branch,
 
 `clone` is not implemented yet, so the initial installation/configuration is manual.
 
@@ -42,6 +50,8 @@ Each git commit synchronized with TFS has a [git note](http://schacon.github.com
 namespace. Each note has a TFS changeset number. To see the notes execute
 
     $ git log --show-notes=tf
+
+Associated workitems IDs are stored in the _tf.wi_ note namespace.
 
 The commit pointed by _tfs_ branch HEAD must always have a note. Without it git-tf won't be able to sync.
 
