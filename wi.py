@@ -34,7 +34,7 @@ Remove all workitem associations:
         pass
 
     def _initArgParser(self, parser):
-        # group = parser.add_mutually_exclusive_group()
+        parser.addVerbose()
         parser.add_argument('-c', '--commit', default='HEAD',
             help='commit to associate with. Defaults to HEAD.')
 

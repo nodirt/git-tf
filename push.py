@@ -5,12 +5,11 @@ import wi
 class push(Command):
     """Push pending commits to TFS."""
 
-    def initArgParser(self, parser):
-        Command.initArgParser(self, parser)
-        parser.add_argument('--number',
-            help='maximum number of changesets to push',
-            type=int,
-            default=None)
+    def _initArgParser(self, parser):
+        parser.addVerbose()
+        parser.addNoChecks()
+        parser.addDryRun()
+        parser.addNumber('maximum number of changesets to push')
 
     def _push(self, hash, index, total):
         dryRun = self.args.dryRun

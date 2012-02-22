@@ -96,12 +96,10 @@ class Command:
             prog='git-tf-' + type(self).__name__)
 
     def initArgParser(self, parser):
-        parser.add_argument('-v', '--verbose', action='count', help='be verbous', default=0)
-        parser.set_defaults(cmd=self, dryRun=False)
+        parser.set_defaults(cmd=self, dryRun=False, verbose=0)
         self._initArgParser(parser)
     def _initArgParser(self, parser):
-        parser.add_argument('-C', '--noChecks', action='store_true', help='skip long checks, such as TFS status')
-        parser.add_argument('--dryRun', action='store_true', help='do not make any changes')
+        pass
 
     def readConfigValue(self, name):
         return git('config tf.%s' % name, errorMsg = 'git tf is not configured. Config value "%s" not found.' % name)
@@ -183,6 +181,16 @@ def fail(msg = None):
     raise GitTfException(None)
 
 #######      util       #######
+
+class ArgParser(argparse.ArgumentParser):
+    def addVerbose(self):
+        self.add_argument('-v', '--verbose', action='count', help='be verbous', default=0)
+    def addNoChecks(self):
+        self.add_argument('-C', '--noChecks', action='store_true', help='skip long checks, such as TFS status')
+    def addDryRun(self):
+        self.add_argument('--dryRun', action='store_true', help='do not make any changes')
+    def addNumber(self, help):
+        self.add_argument('--number', type=int, default=None, help=help)
 
 def parseXmlDatetime(str):
     return datetime.datetime.strptime(str, '%Y-%m-%dT%H:%M:%S.%f%z')

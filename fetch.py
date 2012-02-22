@@ -4,12 +4,11 @@ from core import *
 class fetch(Command):
     """Fetch changes from TFS to Git without merging."""
 
-    def initArgParser(self, parser):
-        Command.initArgParser(self, parser)
-        parser.add_argument('--number',
-            help='maximum number of changesets to fetch',
-            type=int,
-            default=None)
+    def _initArgParser(self, parser):
+        parser.addVerbose()
+        parser.addNoChecks()
+        parser.addDryRun()
+        parser.addNumber('maximum number of changesets to fetch')
 
     def _run(self):
         args = self.args
