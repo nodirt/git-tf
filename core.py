@@ -1,8 +1,10 @@
 import subprocess as proc
-import os, stat, re, datetime, argparse, time
+import os, stat, re, datetime, argparse, time, locale, sys
+from itertools import *
 import xml.etree.ElementTree as etree
 
 os.environ['GIT_NOTES_REF'] = 'refs/notes/tf'
+locale.setlocale(locale.LC_ALL, '')
 
 class GitTfException(Exception):
     pass
@@ -245,6 +247,29 @@ def indentPrint(text, indent = 1):
     for line in lines:
         print('  ' * indent + line)
 
-_terminalHeight, _terminalWidth = [int(x) for x in os.popen('stty size', 'r').read().split()] or [24,80]
+_terminalHeight, terminalWidth = [int(x) for x in os.popen('stty size', 'r').read().split()] or [24,80]
 def printLine():
-    print('_' * _terminalWidth)
+    print('_' * terminalWidth)
+
+def printLess(lines):
+    if not sys.stdout.isatty():
+        for line in lines:
+            print(line)
+        return
+
+    (forPrint, forLess) = tee(lines, 2)
+    doLess = False
+    for i, line in enumerate(forPrint):
+        print(line)
+        if i >= _terminalHeight - 2:
+            doLess = True
+            break
+
+    if doLess:
+        less = proc.Popen(['less', '-'], stdin=proc.PIPE)
+        try:
+            for line in forLess:
+                less.stdin.write(bytes(line + '\n', 'utf-8'))
+        finally:
+            less.communicate()
+
