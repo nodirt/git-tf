@@ -90,7 +90,10 @@ class Command:
         self._free = []
 
     def argParserCtorArgs(self):
-        return dict(description=type(self).__doc__, formatter_class=argparse.RawTextHelpFormatter)
+        return dict(
+            description=type(self).__doc__,
+            formatter_class=argparse.RawTextHelpFormatter,
+            prog='git-tf-' + type(self).__name__)
 
     def initArgParser(self, parser):
         parser.add_argument('-v', '--verbose', action='count', help='be verbous', default=0)
