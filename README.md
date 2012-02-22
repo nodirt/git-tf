@@ -1,4 +1,4 @@
-git-tf - basic two-way bridge between TFS and Git
+git-tf - simple two-way bridge between TFS and Git
 =================================================
 
 Features
