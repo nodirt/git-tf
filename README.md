@@ -180,3 +180,7 @@ If you use merge, you will screw your TFS history up when you push and
 your team won't be happy.
 
 [msdnWorkspace]: http://msdn.microsoft.com/en-us/library/y901w7se(v=vs.80).aspx
+
+Mailing list
+--------
+...is [here](https://groups.google.com/group/git-tf)
