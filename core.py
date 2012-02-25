@@ -184,7 +184,7 @@ class Command:
     def runWithArgs(self, args):
         if args.verbose:
             print('Parsed arguments:')
-            indentPrint(str(args))
+            printIndented(str(args))
             print()
 
         if args.dryRun:
@@ -238,7 +238,7 @@ def chmod(path, writable, rec = True):
             for filename in filenames:
                 update(os.path.join(root, filename))
 
-def indentPrint(text, indent = 1):
+def printIndented(text, indent = 1):
     if isinstance(text, str):
         lines = text.splitlines()
     else:

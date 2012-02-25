@@ -59,7 +59,7 @@ class fetch(Command):
                 unpushed = git('log tfs..master --oneline')
                 if unpushed:
                     print('You have unpushed commits:')
-                    indentPrint(unpushed)
+                    printIndented(unpushed)
                     print('Cherry-pick them when you finish repairing.')
                 fail()
 

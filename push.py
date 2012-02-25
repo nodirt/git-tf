@@ -31,7 +31,7 @@ class push(Command):
             changes = [change[change.index('\t'):].strip().split('\t') for change in rawDiff(changeType).splitlines()]
             if changes:
                 print(displayChangeType + ':')
-                indentPrint([' -> '.join(f) for f in changes])
+                printIndented([' -> '.join(f) for f in changes])
                 yield changes
 
         def joinFiles(files):
@@ -43,7 +43,7 @@ class push(Command):
         if unknownChanges:
             print('Unexpected file change!!')
             print()
-            indentPrint(unknownChanges)
+            printIndented(unknownChanges)
             fail()
 
         def tfmut(args):
@@ -102,7 +102,7 @@ class push(Command):
         unmergedCommits = git('log %s.. master --oneline' % lastMasterCommit)
         if unmergedCommits:
             print('You have unmerged changes in tfs branch:')
-            indentPrint(unmergedCommits)
+            printIndented(unmergedCommits)
             fail()
 
         print('Last synchronized commit:', git('log -1 --format=%h tfs'))
