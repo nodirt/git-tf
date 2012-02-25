@@ -269,6 +269,8 @@ def printLess(lines):
         less = proc.Popen(['less', '-'], stdin=proc.PIPE)
         try:
             for line in forLess:
+                if less.poll() is not None:
+                    break
                 less.stdin.write(bytes(line + '\n', 'utf-8'))
         finally:
             less.communicate()
