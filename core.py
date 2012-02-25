@@ -119,6 +119,20 @@ class _tf(Runner):
         history = etree.fromstring(self(args))
         return [self.Changeset(cs) for cs in history if cs.tag == 'changeset']
 
+    def getDomain(self):
+        domain = git('config tf.domain', errorValue='')
+        if domain:
+            return domain
+
+        email = git('config user.email')
+        if not email:
+            print('Email not set. Configure it:')
+            fail('$ git config user.email userName@yourTfsServer.com')
+        try:
+            return email[email.index('@') + 1:]
+        except ValueError:
+            fail('Could not determine the domain. Your email is: ')
+
 tf = _tf()
 
 
@@ -156,10 +170,6 @@ class Command:
 
     def _initArgParser(self, parser):
         pass
-
-    def readConfigValue(self, name):
-        return git('config tf.%s' % name,
-            errorMsg='git tf is not configured. Config value "%s" not found.' % name)
 
     def moveToRootDir(self):
         root = git('rev-parse --show-toplevel')

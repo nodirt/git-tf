@@ -19,7 +19,8 @@ class fetch(Command):
 
     def _run(self):
         args = self.args
-        domain = self.readConfigValue('domain')
+        domain = tf.getDomain()
+
         print('Fetching from TFS')
         lastCommit = git('log -1 --format=%H tfs')
 
