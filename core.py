@@ -1,74 +1,110 @@
 import subprocess as proc
-import os, stat, re, datetime, argparse
+import os, stat, re, datetime, argparse, time
 import xml.etree.ElementTree as etree
 
 os.environ['GIT_NOTES_REF'] = 'refs/notes/tf'
 
+class GitTfException(Exception):
+    pass
+def fail(msg = None):
+    if msg: print(msg)
+    raise GitTfException(None)
+
 _curCommand = None
 
-def runner(executable = ''):
-    def run(args, allowedExitCodes = [0], errorMsg = None, errorValue = None, output = False, indent = 1, dryRun = None):
+class Runner:
+    def __init__(self, prefix=''):
+        self.prefix = prefix
+
+    def start(self, args):
+        class Process:
+            def __init__(self, pipe):
+                self.pipe = pipe
+
+            def readline(self):
+                while True:
+                    line = self.pipe.stdout.readline()
+                    if line != b'':
+                        return line.decode('utf-8')[:-1]
+                    elif self.pipe.poll() is not None:
+                        return None
+                    else:
+                        time.sleep(0.05)
+
+            def poll(self):
+                return self.pipe.poll()
+            @property
+            def exitCode(self):
+                return self.pipe.returncode
+
+            def fail(self, lastMsg=None):
+                errorOutput = self.pipe.stderr.readall().decode('utf-8').strip()
+                if errorOutput:
+                    print(errorOutput)
+                print('Command "%s" exited with code %s' % (cmd, self.poll()))
+                if lastMsg:
+                    print(lastMsg)
+                fail()
+
+        cmd = (self.prefix and self.prefix + ' ') + args
+        return Process(proc.Popen(cmd, shell = True, stderr = proc.PIPE, stdout = proc.PIPE))
+
+    def __call__(self, args, allowedExitCodes=[0], errorValue=None, output=False, indent=1, dryRun=None, errorMsg=None):
         verbose = _curCommand and _curCommand.args.verbose > 1
-        cmd = args
-        if executable:
-            cmd = '%s %s' % (executable, cmd)
 
         if verbose:
-            print('$ ' + cmd)
+            print('$ ' + (self.prefix and self.prefix + ' ') + args)
         if dryRun:
             return dryRun
 
+        process = self.start(args)
+
         result = ''
-        p = proc.Popen(cmd, shell = True, stderr = proc.PIPE, stdout = proc.PIPE)
+        for line in iter(process.readline, None):
+            if output or verbose:
+                print('  ' * indent + line)
+            result = result and result + '\n'
+            result += line
 
-        while True:
-            line = p.stdout.readline()
-            if line != b'':
-                line = line.decode('utf-8')
-                if output or verbose:
-                    print('  ' * indent + line, end = '')
-                result += line
-            elif not p.poll() is None:
-                break
+        if process.exitCode in allowedExitCodes:
+            return result
+        elif errorValue is not None:
+            return errorValue
+        else:
+            process.fail(errorMsg)
 
-        if len(result) > 0 and result[-1] == '\n':
-            result = result[:-1]
-
-        if p.returncode not in allowedExitCodes:
-            if errorValue != None:
-                return errorValue
-            if errorMsg:
-                print(errorMsg)
-            print(p.stderr.readall().decode('utf-8'))
-            fail('Command "%s" exited with code %s' % (cmd, p.returncode))
-        return result
-    return run
+run = Runner()
 
 #######      GIT       #######
 
-git = runner('git')
-git('--version', errorMsg = 'Git not found in $PATH variable')
+git = Runner('git')
+try:
+    git('--version', errorMsg='Git not found in the $PATH variable')
+except GitTfException:
+    exit(1)
 
 #######      TFS       #######
 
-tf = runner(git('config tf.cmd', errorValue = 'tf'))
+class _tf(Runner):
+    def __init__(self):
+        Runner.__init__(self, git('config tf.cmd', errorValue = 'tf'))
 
-class Changeset(object):
-    def __init__(self, node):
-        self.id = node.get('id')
-        self.comment = node.find('comment')
-        self.comment = self.comment is not None and self.comment.text or ''
-        self.dateIso = node.get('date')
-        self.date = parseXmlDatetime(self.dateIso)
-        self.committer = node.get('committer').split('\\', 1)[-1].strip()
-        self.line = ('%s %s %s %s' % (self.id, self.committer, self.date.ctime(), self.comment)).strip()
+    class Changeset(object):
+        def __init__(self, node):
+            self.id = node.get('id')
+            self.comment = node.find('comment')
+            self.comment = self.comment is not None and self.comment.text or ''
+            self.dateIso = node.get('date')
+            self.date = parseXmlDatetime(self.dateIso)
+            self.committer = node.get('committer').split('\\', 1)[-1].strip()
+            self.line = ('%s %s %s %s' % (self.id, self.committer, self.date.ctime(), self.comment)).strip()
 
-def _history(args):
-    args = 'history -recursive -format:xml %s .' % args
-    history = etree.fromstring(tf(args))
-    return [Changeset(cs) for cs in history if cs.tag == 'changeset']
+    def history(self, args):
+        args = 'history -recursive -format:xml %s .' % args
+        history = etree.fromstring(self(args))
+        return [self.Changeset(cs) for cs in history if cs.tag == 'changeset']
 
-tf.history = _history
+tf = _tf()
 
 class ReadOnlyWorktree(object):
     def __init__(self, output = False):
@@ -170,14 +206,6 @@ class Command:
         self.initArgParser(parser)
         self.runWithArgs(parser.parse_args())
 
-
-class GitTfException(Exception):
-    pass
-
-def fail(msg = None):
-    if msg: print(msg)
-    raise GitTfException(None)
-
 #######      util       #######
 
 class ArgParser(argparse.ArgumentParser):
@@ -216,9 +244,6 @@ def indentPrint(text, indent = 1):
 
     for line in lines:
         print('  ' * indent + line)
-
-def toCamelCase(str):
-    return re.sub(r'\-\w', lambda m: m.group()[1].capitalize(), str)
 
 _terminalHeight, _terminalWidth = [int(x) for x in os.popen('stty size', 'r').read().split()] or [24,80]
 def printLine():
