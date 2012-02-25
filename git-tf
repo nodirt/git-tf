@@ -3,7 +3,11 @@ __doc__ = """Simple two-way Git-TFS bridge"""
 
 import sys
 from core import *
-import fetch, pull, push, wi, log
+import fetch
+import pull
+import push
+import wi
+import log
 
 argParser = ArgParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
 parsers = argParser.add_subparsers(title='Commands:', parser_class=ArgParser)

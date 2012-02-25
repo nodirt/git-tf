@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from core import *
+import re
 import wi
+
 
 class push(Command):
     """Push pending commits to TFS."""
@@ -23,7 +25,6 @@ class push(Command):
         git('checkout ' + hash)
         print('Pushing [%d/%d] %s...' % (index + 1, total, git(r'log -1 --format="%h \"%s\""')))
 
-
         def rawDiff(changeType):
             return git('diff --raw --find-copies-harder HEAD^.. --diff-filter=%s' % changeType)
 
@@ -36,6 +37,7 @@ class push(Command):
 
         def joinFiles(files):
             return '"' + '" "'.join(files) + '"'
+
         def joinChanges(changes):
             return ' '.join(map(joinFiles, changes))
 
@@ -47,7 +49,7 @@ class push(Command):
             fail()
 
         def tfmut(args):
-            tf(args, dryRun = dryRun)
+            tf(args, dryRun=dryRun)
 
         try:
             for c in readChanges('D', 'Removed'):
@@ -85,15 +87,15 @@ class push(Command):
             if not dryRun:
                 print('Restoring Git and TFS state...')
                 with ReadOnlyWorktree():
-                    tf('undo -recursive .', allowedExitCodes = [0, 100])
+                    tf('undo -recursive .', allowedExitCodes=[0, 100])
                 git('checkout -f tfs')
             raise
 
         # add a note about the changeset number
         print('Moving tfs branch HEAD and marking the commit with a "tf" note')
-        git('checkout tfs', dryRun = dryRun)
-        git('merge --ff-only %s' % hash, dryRun = dryRun)
-        git('notes add -m "%s" %s' % (changeSetNumber, hash), dryRun = dryRun)
+        git('checkout tfs', dryRun=dryRun)
+        git('merge --ff-only %s' % hash, dryRun=dryRun)
+        git('notes add -m "%s" %s' % (changeSetNumber, hash), dryRun=dryRun)
 
     def _run(self):
         print('Pushing to TFS')
@@ -121,11 +123,11 @@ class push(Command):
             print('Latest TFS changeset:', latestTfChangeset)
             fail()
 
-
         print('%d commit(s) to be pushed:' % len(commits))
 
         for i, hash in enumerate(commits):
             self._push(hash, i, len(commits))
+
 
 if __name__ == '__main__':
     push().run()

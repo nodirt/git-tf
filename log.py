@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from core import *
-import sys, re, datetime
-from itertools import *
+import datetime
+
 
 class log(Command):
     """Show changeset log"""
@@ -12,7 +12,7 @@ class log(Command):
             help='Similar to git <since>..<until>. Show only commits between the named two commits.')
 
     def log(self):
-        gitArgs = ', '.join(map(lambda s: '\'' + s +'\'', self.args.gitArgs))
+        gitArgs = ', '.join(map(lambda s: '\'' + s + '\'', self.args.gitArgs))
 
         endMarker = '</git.tf>'
         process = git.start('log {} --format="%h\t%an\t%at\t%s%n%N%n{}"'.format(gitArgs, endMarker))
@@ -38,6 +38,7 @@ class log(Command):
 
     def _run(self):
         printLess(self.log())
+
 
 if __name__ == '__main__':
     log().run()

@@ -3,6 +3,7 @@ from core import *
 
 noteNamespace = 'tf.wi'
 
+
 class wi(Command):
     """Associate a commit with a TFS workitem."""
 
@@ -38,20 +39,21 @@ Remove all workitem associations:
         parser.add_argument('workitem', type=int, nargs='?',
             help='Workitem ID')
 
-
     def _run(self):
         args = self.args
 
         def notes(noteArgs, **kwargs):
             gitArgs = 'notes --ref=%s %s %s' % (noteNamespace, noteArgs, args.commit)
             return git(gitArgs, **kwargs)
+
         def add(note):
             notes('add -fm "%s"' % note)
 
         note = notes('show', errorValue='')
 
         if args.delete:
-            if not note: return
+            if not note:
+                return
             workitem = args.workitem
             if workitem:
                 items = note.split(',')
@@ -70,6 +72,7 @@ Remove all workitem associations:
             add(note + str(args.workitem))
         elif note:
             print(note)
+
 
 if __name__ == '__main__':
     wi().run()

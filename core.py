@@ -1,18 +1,29 @@
 import subprocess as proc
-import os, stat, re, datetime, argparse, time, locale, sys
+import os
+import stat
+import datetime
+import argparse
+import time
+import locale
+import sys
 from itertools import *
 import xml.etree.ElementTree as etree
 
 os.environ['GIT_NOTES_REF'] = 'refs/notes/tf'
 locale.setlocale(locale.LC_ALL, '')
 
+
 class GitTfException(Exception):
     pass
-def fail(msg = None):
-    if msg: print(msg)
+
+
+def fail(msg=None):
+    if msg:
+        print(msg)
     raise GitTfException(None)
 
 _curCommand = None
+
 
 class Runner:
     def __init__(self, prefix=''):
@@ -35,6 +46,7 @@ class Runner:
 
             def poll(self):
                 return self.pipe.poll()
+
             @property
             def exitCode(self):
                 return self.pipe.returncode
@@ -49,7 +61,7 @@ class Runner:
                 fail()
 
         cmd = (self.prefix and self.prefix + ' ') + args
-        return Process(proc.Popen(cmd, shell = True, stderr = proc.PIPE, stdout = proc.PIPE))
+        return Process(proc.Popen(cmd, shell=True, stderr=proc.PIPE, stdout=proc.PIPE))
 
     def __call__(self, args, allowedExitCodes=[0], errorValue=None, output=False, indent=1, dryRun=None, errorMsg=None):
         verbose = _curCommand and _curCommand.args.verbose > 1
@@ -87,9 +99,10 @@ except GitTfException:
 
 #######      TFS       #######
 
+
 class _tf(Runner):
     def __init__(self):
-        Runner.__init__(self, git('config tf.cmd', errorValue = 'tf'))
+        Runner.__init__(self, git('config tf.cmd', errorValue='tf'))
 
     class Changeset(object):
         def __init__(self, node):
@@ -108,20 +121,24 @@ class _tf(Runner):
 
 tf = _tf()
 
+
 class ReadOnlyWorktree(object):
-    def __init__(self, output = False):
+    def __init__(self, output=False):
         self.output = output
+
     def __enter__(self):
         if self.output:
             print('Making files read-only')
         chmod('.', False)
         chmod('.git', True)
+
     def __exit__(self, _, __, ___):
         if self.output:
             print('Making files writable')
         chmod('.', True)
 
 ######       App           #######
+
 
 class Command:
     def __init__(self):
@@ -136,17 +153,19 @@ class Command:
     def initArgParser(self, parser):
         parser.set_defaults(cmd=self, dryRun=False, verbose=0)
         self._initArgParser(parser)
+
     def _initArgParser(self, parser):
         pass
 
     def readConfigValue(self, name):
-        return git('config tf.%s' % name, errorMsg = 'git tf is not configured. Config value "%s" not found.' % name)
+        return git('config tf.%s' % name,
+            errorMsg='git tf is not configured. Config value "%s" not found.' % name)
 
     def moveToRootDir(self):
         root = git('rev-parse --show-toplevel')
         origDir = os.path.abspath('.')
         os.chdir(root)
-        self._free.append(lambda : os.chdir(origDir))
+        self._free.append(lambda: os.chdir(origDir))
 
     def checkStatus(self, checkTfs=None):
         if git('status -s') != '':
@@ -159,8 +178,11 @@ class Command:
 
     def switchToTfsBranch(self):
         def getCurBranch():
-            return [b[2:] for b in git('branch').splitlines() if b.startswith('* ')][0]
+            branches = git('branch').splitlines()
+            return [b[2:] for b in branches if b.startswith('* ')][0]
+
         noBranch = '(no branch)'
+
         def checkoutBranch(branch):
             curBranch = getCurBranch()
             if curBranch != branch and curBranch != noBranch:
@@ -210,26 +232,35 @@ class Command:
 
 #######      util       #######
 
+
 class ArgParser(argparse.ArgumentParser):
     def addVerbose(self):
-        self.add_argument('-v', '--verbose', action='count', help='be verbous', default=0)
+        self.add_argument('-v', '--verbose', action='count', default=0,
+            help='be verbous')
+
     def addNoChecks(self):
-        self.add_argument('-C', '--noChecks', action='store_true', help='skip long checks, such as TFS status')
+        self.add_argument('-C', '--noChecks', action='store_true',
+            help='skip long checks, such as TFS status')
+
     def addDryRun(self):
-        self.add_argument('--dryRun', action='store_true', help='do not make any changes')
+        self.add_argument('--dryRun', action='store_true',
+            help='do not make any changes')
+
     def addNumber(self, help):
         self.add_argument('--number', type=int, default=None, help=help)
 
-def parseXmlDatetime(str):
-    return datetime.datetime.strptime(str, '%Y-%m-%dT%H:%M:%S.%f%z')
 
-def chmod(path, writable, rec = True):
+def parseXmlDatetime(text):
+    return datetime.datetime.strptime(text, '%Y-%m-%dT%H:%M:%S.%f%z')
+
+
+def chmod(path, writable, rec=True):
     def update(path):
         mode = os.stat(path).st_mode
         if writable:
-            mode = mode | stat.S_IWRITE
+            mode |= stat.S_IWRITE
         else:
-            mode = mode & ~stat.S_IWRITE
+            mode &= ~stat.S_IWRITE
         os.chmod(path, mode)
     if not rec:
         update(path)
@@ -238,7 +269,8 @@ def chmod(path, writable, rec = True):
             for filename in filenames:
                 update(os.path.join(root, filename))
 
-def printIndented(text, indent = 1):
+
+def printIndented(text, indent=1):
     if isinstance(text, str):
         lines = text.splitlines()
     else:
@@ -247,9 +279,13 @@ def printIndented(text, indent = 1):
     for line in lines:
         print('  ' * indent + line)
 
-_terminalHeight, terminalWidth = [int(x) for x in os.popen('stty size', 'r').read().split()] or [24,80]
+
+_terminalHeight, terminalWidth = [int(x) for x in os.popen('stty size', 'r').read().split()] or [24, 80]
+
+
 def printLine():
     print('_' * terminalWidth)
+
 
 def printLess(lines):
     if not sys.stdout.isatty():
@@ -274,4 +310,3 @@ def printLess(lines):
                 less.stdin.write(bytes(line + '\n', 'utf-8'))
         finally:
             less.communicate()
-
