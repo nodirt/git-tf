@@ -48,34 +48,34 @@ class push(Command):
             printIndented(unknownChanges)
             fail()
 
-        def tfmut(args):
+        def tfmut(*args):
             tf(args, dryRun=dryRun)
 
         try:
             for c in readChanges('D', 'Removed'):
-                tfmut('rm -recursive ' + joinChanges(c))
+                tfmut('rm -recursive {}', joinChanges(c))
             for c in readChanges('M', 'Modified'):
-                tfmut('checkout ' + joinChanges(c))
+                tfmut('checkout {}', joinChanges(c))
             for changes in readChanges('R', 'Renamed'):
                 for files in changes:
                     src, dest = files
                     if not dryRun:
                         os.rename(dest, src)
                     try:
-                        tfmut('rename ' + joinFiles(files))
+                        tfmut('rename {}', joinFiles(files))
                     except:
                         if not dryRun:
                             os.rename(src, dest)
                         raise
             for c in readChanges('CA', 'Added'):
-                tfmut('add ' + joinChanges([files[-1:] for files in c]))
+                tfmut('add {}', joinChanges([files[-1:] for files in c]))
 
             print('Checking in...')
             comment = git('log -1 --format=%s%n%b').strip().replace('"', '\\"')
             workitems = git('notes --ref=%s show %s' % (wi.noteNamespace, hash), errorValue='')
             if workitems:
                 workitems = '"-associate:%s"' % workitems
-            checkin = tf('checkin "-comment:%s" -recursive %s .' % (comment, workitems),
+            checkin = tf(('checkin "-comment:{}" -recursive {} .', comment, workitems),
                 allowedExitCodes=[0, 1],
                 output=True,
                 dryRun=dryRun and 'Changeset #12345')

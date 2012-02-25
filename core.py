@@ -29,6 +29,25 @@ class Runner:
     def __init__(self, prefix=''):
         self.prefix = prefix
 
+    def argsToStr(self, args):
+        if type(args) == str:
+            return args
+        elif type(args) == tuple:
+            fmt, *args = args
+            fmt = self.argsToStr(fmt)
+            args = map(lambda a: a if type(a) == str else self.argsToStr(a), args)
+            return fmt.format(*args)
+        else:
+            return self.argsToStr(str(args))
+
+    def genCommand(self, args):
+        cmd = self.prefix
+        if args:
+            args = self.argsToStr(args).strip()
+            if args:
+                cmd += ' ' + args
+        return cmd
+
     def start(self, args):
         class Process:
             def __init__(self, pipe):
@@ -60,12 +79,13 @@ class Runner:
                     print(lastMsg)
                 fail()
 
-        cmd = (self.prefix and self.prefix + ' ') + args
+        cmd = (self.prefix and self.prefix + ' ') + self.argsToStr(args)
         return Process(proc.Popen(cmd, shell=True, stderr=proc.PIPE, stdout=proc.PIPE))
 
     def __call__(self, args, allowedExitCodes=[0], errorValue=None, output=False, indent=1, dryRun=None, errorMsg=None):
         verbose = _curCommand and _curCommand.args.verbose > 1
 
+        args = self.argsToStr(args)
         if verbose:
             print('$ ' + (self.prefix and self.prefix + ' ') + args)
         if dryRun:
@@ -102,7 +122,13 @@ except GitTfException:
 
 class _tf(Runner):
     def __init__(self):
+        self.paramPrefix = git('config tf.paramPrefix', errorValue='') or '/' if os.name == 'nt' else '-'
         Runner.__init__(self, git('config tf.cmd', errorValue='tf'))
+
+    def argsToStr(self, args):
+        if type(args) == str and self.paramPrefix != '-':
+            args = args.replace('-', self.paramPrefix)
+        return Runner.argsToStr(self, args)
 
     class Changeset(object):
         def __init__(self, node):
@@ -112,10 +138,10 @@ class _tf(Runner):
             self.dateIso = node.get('date')
             self.date = parseXmlDatetime(self.dateIso)
             self.committer = node.get('committer').split('\\', 1)[-1].strip()
-            self.line = ('%s %s %s %s' % (self.id, self.committer, self.date.ctime(), self.comment)).strip()
+            self.line = ' '.join((self.id, self.committer, self.date.ctime(), self.comment)).strip()
 
     def history(self, args):
-        args = 'history -recursive -format:xml %s .' % args
+        args = ('history -recursive -format:xml {} .', args)
         history = etree.fromstring(self(args))
         return [self.Changeset(cs) for cs in history if cs.tag == 'changeset']
 

@@ -38,7 +38,7 @@ class fetch(Command):
             return False
 
         print('Requesting tf history %s..%s' % (lastChangeset, latestCommit))
-        history = tf.history('-version:C%s~C%s' % (lastChangeset, latestCommit))
+        history = tf.history(('-version:C{}~C{}', lastChangeset, latestCommit))
         history.reverse()
         history.pop(0)
         history = history[:args.number]
@@ -49,7 +49,7 @@ class fetch(Command):
             return git('status -s')
 
         def fetch(version, output=True):
-            return tf('get -version:%s -recursive .' % version, output=output, dryRun=args.dryRun)
+            return tf(('get -version:{} -recursive .', version), output=output, dryRun=args.dryRun)
 
         def repair(lastCommit, lastChangeset, changesetToFetch):
             print('But it may mean we have a problem, so let\'s check it.')
