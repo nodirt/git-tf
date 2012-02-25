@@ -69,7 +69,14 @@ class push(Command):
             workitems = git('notes --ref=%s show %s' % (wi.noteNamespace, hash), errorValue='')
             if workitems:
                 workitems = '"-associate:%s"' % workitems
-            checkin = tf('checkin "-comment:%s" -recursive %s .' % (comment, workitems), output = True, dryRun = dryRun and 'Changeset #12345')
+            checkin = tf('checkin "-comment:%s" -recursive %s .' % (comment, workitems),
+                allowedExitCodes=[0, 1],
+                output=True,
+                dryRun=dryRun and 'Changeset #12345')
+            changeSetNumber = re.search(r'^Changeset #(\d+)', checkin, re.M)
+            if not changeSetNumber:
+                fail('Check in failed.')
+            changeSetNumber = changeSetNumber.group(1)
         except:
             if not dryRun:
                 print('Restoring Git and TFS state...')
@@ -77,7 +84,6 @@ class push(Command):
                     tf('undo -recursive .', allowedExitCodes = [0, 100])
                 git('checkout -f tfs')
             raise
-        changeSetNumber = re.search(r'^Changeset #(\d+)', checkin, re.M).group(1)
 
         # add a note about the changeset number
         print('Moving tfs branch HEAD and marking the commit with a "tf" note')
