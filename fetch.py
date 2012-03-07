@@ -2,6 +2,8 @@
 from core import *
 import re
 
+_allFilesUpToDate = 'All files up to date.'
+
 
 class fetch(Command):
     """Fetch changes from TFS to Git without merging."""
@@ -9,6 +11,7 @@ class fetch(Command):
     def _initArgParser(self, parser):
         parser.addVerbose()
         parser.addNoChecks()
+        parser.addForce('make an empty commit when tf responds "%s". Use with caution!' % _allFilesUpToDate)
         parser.addDryRun()
         parser.addNumber('maximum number of changesets to fetch')
 
@@ -45,39 +48,21 @@ class fetch(Command):
 
         print('%d changeset(s) to fetch' % len(history))
 
-        def repair(changesetToFetch):
-            lastCommit, lastChangeset = git('log -1 --format=%h%n%N').strip().splitlines()
-            print('But it may mean we have a problem, so let\'s check it.')
-            print('Trying to fetch the previous changeset and repeat...')
-            tf.get(lastChangeset, dryRun=dryRun)
-
-            if git.hasChanges():
-                print('git-tf state is corrupted: the commit %s was expected to match changeset %s.' %
-                      (lastCommit, lastChangeset))
-                print('You can try to "git reset" to a non-corrupted commit and fetch/pull again.')
-                unpushed = git('log tfs..master --oneline')
-                if unpushed:
-                    print('You have unpushed commits:')
-                    printIndented(unpushed)
-                    print('Cherry-pick them when you finish repairing.')
-                fail()
-
-            print('No, there is no problem. Now fetching %s again...' % changesetToFetch)
-            tf.get(changesetToFetch, dryRun=dryRun)
-
         with ReadOnlyWorktree(self.args.verbose):
             try:
                 for i, cs in enumerate(history):
                     printLine()
                     print('Fetching [%d/%d] "%s"...' % (i + 1, len(history), cs.line))
-                    tf.get(cs.id, dryRun=dryRun, output=True)
-                    if not git.hasChanges():
-                        print('From the Git\'s point of view, there is nothing new to commit in the changeset %s.' % \
-                              cs.id)
-                        print('Sometimes it happens with TFS branching.')
-                        if not i:
-                            repair(cs.id)
-                        print('An empty commit will be made.')
+                    tfgetResponse = tf.get(cs.id, dryRun=dryRun, output=True).strip()
+                    if tfgetResponse == _allFilesUpToDate and not self.args.force:
+                        print()
+                        print('tf did not fetch anything. Usually it happens when the local folder contents is '
+                              'different from what TFS expects.')
+                        print('Try to repair tf state by retrieving an old changeset and then returning to this one')
+                        print('Or use --force option if you are absolutely sure that the changeset didn\'t actually '
+                              'change any files.')
+                        fail()
+
                     print('Committing to Git...')
                     comment = cs.comment
                     if not comment:

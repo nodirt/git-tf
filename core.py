@@ -307,6 +307,9 @@ class ArgParser(argparse.ArgumentParser):
     def addNumber(self, help):
         self.add_argument('--number', type=int, default=None, help=help)
 
+    def addForce(self, help):
+        self.add_argument('-f', '--force', action='store_true', help=help)
+
 
 def parseXmlDatetime(text):
     return datetime.datetime.strptime(text, '%Y-%m-%dT%H:%M:%S.%f%z')
