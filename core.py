@@ -119,8 +119,8 @@ class _git(Runner):
         return self('status -s')
 
     def getChangesetNumber(self, commit=''):
-        note = git('notes show ' + commit)
-        return re.findall(r'^\d+', note, re.M)[-1]
+        note = git('notes show ' + commit, errorValue='')
+        return re.findall(r'^\d+', note, re.M)[-1] if note else None
 
 git = _git()
 try:
@@ -226,8 +226,8 @@ class Command:
         os.chdir(root)
         self._free.append(lambda: os.chdir(origDir))
 
-    def checkStatus(self, checkTfs=None):
-        if git('status -s') != '':
+    def checkStatus(self, checkTfs=None, checkGit=True):
+        if checkGit and git('status -s') != '':
             fail('Worktree is dirty. Stash your changes before proceeding.')
 
         if checkTfs is True or not self.args.noChecks:

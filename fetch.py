@@ -21,9 +21,7 @@ class fetch(Command):
         self.switchToTfsBranch()
 
     def _run(self):
-        domain = tf.getDomain()
-        dryRun = self.args.dryRun
-        verbose = self.args.verbose
+        tf.getDomain()
 
         print('Fetching from TFS')
 
@@ -36,7 +34,7 @@ class fetch(Command):
                  git('log -1 --format=%H tfs'))
 
         latestChangeset = tf.history(stopAfter=1)[0].id
-        if verbose:
+        if self.args.verbose:
             print('Latest changeset on TFS:', latestChangeset)
         if lastChangeset == latestChangeset:
             print('Nothing to fetch')
@@ -48,7 +46,13 @@ class fetch(Command):
         history.pop(0)
         history = history[:self.args.number]
 
+        self.doFetch(history, repair)
+
+    def doFetch(self, history, repair=None):
         print('%d changeset(s) to fetch' % len(history))
+        domain = tf.getDomain()
+        dryRun = self.args.dryRun
+        verbose = self.args.verbose
 
         with ReadOnlyWorktree(verbose):
             try:
@@ -82,8 +86,9 @@ class fetch(Command):
             except:
                 if not dryRun:
                     lastSyncedChangeset = git.getChangesetNumber()
-                    print('Rolling back to the last synchronized changeset: %s' % lastSyncedChangeset)
-                    tf.get(lastSyncedChangeset, output=True)
+                    if lastSyncedChangeset:
+                        print('Rolling back to the last synchronized changeset: %s' % lastSyncedChangeset)
+                        tf.get(lastSyncedChangeset, output=True)
                     git('reset --hard')
                     git('clean -fd')
                 raise
