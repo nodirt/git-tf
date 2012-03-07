@@ -4,14 +4,18 @@ git-tf - simple two-way bridge between TFS and Git
 Features
 --------
 
-git-tf can do two basic things: `fetch`/`pull` and `push`. Also you can associate a commit with _TFS workitems_.
+*   Synchronizes Git commits with TFS changesets and vice versa.
+*   One-to-one changeset-commit correspondence.
+*   Works transparently. Other TFS users may not even know, that you use Git.
+*   TFS Workitem support: `git tf wi`.
+*   Displays TFS-styled history with changeset numbers instead of commit hashes: `git tf log`
 
-git-tf works transparently. Other TFS users may not even know, that you use Git. 
+### Usage workflow
 
 Here is the typical git-tf usage workflow:
 
 1.  You work in the master branch offline as you normally do with a
-local git repository. You can stash, rebase, make local branches, etc.
+local git repository. You can stash, rebase, make local branches, bisect, etc. No need to checkout a file before editing.
 
 2.  If a commit is associated with a TFS workitem, you use `wi` command to mark the commit:
 
@@ -36,8 +40,6 @@ local git repository. You can stash, rebase, make local branches, etc.
     then the created changeset is associated with them automatically.
 
     To see the list of pending commits use `$ git log tfs..` while you are on _master_ branch,
-
-`clone` is not implemented yet, so the initial installation/configuration is manual.
 
 How it works
 ------------
@@ -121,6 +123,8 @@ Skip this section if you have already mapped a TFS server folder to a local fold
 GIT Configuration
 -----------------
 
+`clone` is not implemented yet, so the initial configuration has to be done manually.
+
 To start using git-tf you should have a git commit corresponding to a
 TFS changeset. The changeset is not required to be latest changeset.
 If loosing your git change history, and downloading it from TFS is
@@ -166,20 +170,20 @@ Be patient. TFS works way slower than Git.
 DO NOT MERGE
 ------------
 
-Never use `git merge tfs` on master if you have called `fetch` instead
-of `pull`. You should always rebase:
+Never use `git merge tfs` on _master_ if you have used `fetch` instead
+of `pull`. You should always `rebase`:
 
     # on branch master
     $ git rebase tfs
 
-Rebase is similar to merge, but instead of applying _their_ changes on
+`rebase` is like `merge`, but instead of applying _their_ changes on
 your changes, it applies your changes on _their_ changes.
 
-If you use merge, you will screw your TFS history up when you push and
+If you use `merge`, you will screw your TFS history up when you `push` and
 your team won't be happy.
-
-[msdnWorkspace]: http://msdn.microsoft.com/en-us/library/y901w7se(v=vs.80).aspx
 
 Mailing list
 --------
 ...is [here](https://groups.google.com/group/git-tf)
+
+[msdnWorkspace]: http://msdn.microsoft.com/en-us/library/y901w7se(v=vs.80).aspx
