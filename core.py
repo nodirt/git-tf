@@ -2,6 +2,7 @@ import subprocess as proc
 import os
 import stat
 import datetime
+import re
 import argparse
 import time
 import locale
@@ -26,13 +27,12 @@ _curCommand = None
 
 
 class Runner:
-    def __init__(self, prefix=''):
-        self.prefix = prefix
+    prefix = ''
 
     def argsToStr(self, args):
         if type(args) == str:
             return args
-        elif type(args) == tuple:
+        elif type(args) in (tuple, list):
             fmt, *args = args
             fmt = self.argsToStr(fmt)
             args = map(lambda a: a if type(a) == str else self.argsToStr(a), args)
@@ -111,7 +111,18 @@ run = Runner()
 
 #######      GIT       #######
 
-git = Runner('git')
+
+class _git(Runner):
+    prefix = 'git'
+
+    def hasChanges(self):
+        return self('status -s')
+
+    def getChangesetNumber(self, commit=''):
+        note = git('notes show ' + commit)
+        return re.findall(r'^\d+', note, re.M)[-1]
+
+git = _git()
 try:
     git('--version', errorMsg='Git not found in the $PATH variable')
 except GitTfException:
@@ -121,9 +132,8 @@ except GitTfException:
 
 
 class _tf(Runner):
-    def __init__(self):
-        self.paramPrefix = git('config tf.paramPrefix', errorValue='') or '/' if os.name == 'nt' else '-'
-        Runner.__init__(self, git('config tf.cmd', errorValue='tf'))
+    prefix = git('config tf.cmd', errorValue='tf')
+    paramPrefix = git('config tf.paramPrefix', errorValue='') or '/' if os.name == 'nt' else '-'
 
     def argsToStr(self, args):
         if type(args) == str and self.paramPrefix != '-':
@@ -140,8 +150,16 @@ class _tf(Runner):
             self.committer = node.get('committer').split('\\', 1)[-1].strip()
             self.line = ' '.join((self.id, self.committer, self.date.ctime(), self.comment)).strip()
 
-    def history(self, args):
-        args = ('history -recursive -format:xml {} .', args)
+    def history(self, version=None, stopAfter=None):
+        filter = ['']
+        if version:
+            filter[0] += '-version:C{}~C{}'
+            filter += version
+        if stopAfter:
+            filter[0] += ' -stopafter:{}'
+            filter.append(stopAfter)
+
+        args = ('history -recursive -format:xml {} .', filter)
         history = etree.fromstring(self(args))
         return [self.Changeset(cs) for cs in history if cs.tag == 'changeset']
 
@@ -158,6 +176,10 @@ class _tf(Runner):
             return email[email.index('@') + 1:]
         except ValueError:
             fail('Could not determine the domain. Your email is: ')
+
+    def get(self, version, **kwargs):
+        return self(('get -version:{} -recursive .', version), **kwargs)
+
 
 tf = _tf()
 
