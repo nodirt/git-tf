@@ -1,5 +1,5 @@
 git-tf - simple two-way bridge between TFS and Git
-=================================================
+==================================================
 
 Features
 --------
@@ -10,16 +10,16 @@ git-tf works transparently. Other TFS users may not even know, that you use Git.
 
 Here is the typical git-tf usage workflow:
 
-1. You work in the master branch offline as you normally do with a
+1.  You work in the master branch offline as you normally do with a
 local git repository. You can stash, rebase, make local branches, etc.
 
-2. If a commit is associated with a TFS workitem, you use `wi` command to mark:
+2.  If a commit is associated with a TFS workitem, you use `wi` command to mark the commit:
 
         $ git tf wi 1234
 
     This marks the HEAD commit with the workitem 1234.
 
-3. When you are ready to sync with the server, you first `fetch` or `pull` changes.
+3.  When you are ready to sync with the server, you first `fetch` or `pull` changes.
    
         $ git tf pull
    
@@ -28,7 +28,7 @@ local git repository. You can stash, rebase, make local branches, etc.
 
     If you used `fetch`, then `git rebase` your changes instead of merging. It is **important**, see below.
 
-4. Then you `push` your local changes to TFS
+4.  Then you `push` your local changes to TFS
    
         $ git tf push
     
@@ -60,8 +60,8 @@ The commit pointed by _tfs_ branch HEAD must always have a note. Without it git-
 Installation
 ------------
 
-Download the files and make sure that git-tf is in the $PATH variable.
-I usually have only a symbolic link to git-tf in the $PATH variable
+Download the files and make sure that git-tf is in the _PATH_ variable.
+I usually have only a symbolic link to git-tf in the _PATH_ variable
 and I recommend doing it this way.
 Also make sure that git-tf files have the execution permission.
 
@@ -89,8 +89,8 @@ The product key is stored at _~/.microsoft/Team Explorer/10.0/_
 
 Skip this section if you have already mapped a TFS server folder to a local folder.
 
-1. Configure a [profile](http://msdn.microsoft.com/en-us/library/gg413276.aspx):
-   There is an example:
+1.  Configure a [profile](http://msdn.microsoft.com/en-us/library/gg413276.aspx). 
+    There is an example:
    
         $ tf profile -new MyProxyProfile \
         -string:serverUrl=http://tfs01.xyz.example.com \
@@ -110,11 +110,11 @@ Skip this section if you have already mapped a TFS server folder to a local fold
    a secure connection (https). Keep in mind that you must escape any character that your shell may
    interpret (like space) in double quotes.
 
-2. Create a [workspace.][msdnWorkspace]
+2.  Create a [workspace.][msdnWorkspace]
 
         $ tf workspace -new -collection:http://tfs01.xyz.example.com MyWorkspace
 
-3. Map a server folder to a local folder:
+3.  Map a server folder to a local folder:
    
         $ tf workfold -map -workspace:MyWorkspace $/MyProject/Main ~/projects/myProject
 
@@ -126,37 +126,36 @@ TFS changeset. The changeset is not required to be latest changeset.
 If loosing your git change history, and downloading it from TFS is
 acceptable, then do the following:
 
-1. Get the version from TFS that you would like your git history to start
+1.  Get the version from TFS that you would like your git history to start
 from. For example, you want to fetch history starting from 12345:
    
         $ tf get -version:C12345 -recursive .
 
-2. Init a git repository and commit the fetched files
+2.  Init a git repository, configure it and commit the fetched files
    
         $ git init
+        $ git config user.email yourName@yourTfsServer.com
         $ git commit -am "Initial commit"
 
-3. Mark the commit with a note
+   The email domain must match the TFS server domain name.
+
+3.  Mark the commit with a note
    
         $ git notes --ref=tf add -m "12345"
 
-4. Configure git-tf. Example:
-   
-        $ git config tf.domain mycompany.com
+4.  Create a _tfs_ branch:
 
-5. Set _tfs_ branch as an upstream branch for _master_.
+        $ git branch --track tfs
 
-        $ git branch --set-upstream master tfs
+5.  You might want to set the _tf.cmd_ config value that allows you to override the default
+path and arguments to the Team Explorer Anywhere executable. This can by useful to configure
+the authentication for your TFS connection. For example:
 
-There is also a _tf.cmd_ config value with which you can override the default
-call to the Team Explorer Anywhere executable. This can by usefull to configure
-the authentication for your TFS connection.
+        $ git config tf.cmd 'tf -profile:MyProxyProfile'
 
-For example:
+   Details are [here](http://msdn.microsoft.com/en-us/library/hh190726.aspx).
 
-    $ git config tf.cmd 'tf -profile:MyProxyProfile'
-
-Details are [here](http://msdn.microsoft.com/en-us/library/hh190726.aspx).
+   By default `tf` is assumed to be in the _PATH_ variable.
 
 The configuration is complete. Now you can fetch the remaining changesets
 
