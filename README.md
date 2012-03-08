@@ -87,7 +87,8 @@ It is a paid product, but you can use it for 180 days:
 
 The product key is stored at _~/.microsoft/Team Explorer/10.0/_
 
-### TFS Configuration
+TFS Configuration
+-----------------
 
 Skip this section if you have already mapped a TFS server folder to a local folder.
 
@@ -120,52 +121,21 @@ Skip this section if you have already mapped a TFS server folder to a local fold
    
         $ tf workfold -map -workspace:MyWorkspace $/MyProject/Main ~/projects/myProject
 
-GIT Configuration
------------------
+Cloning a TFS repository
+------------------------
 
-`clone` is not implemented yet, so the initial configuration has to be done manually.
+Once you have a local folder mapped to a server folder, you can use `clone`:
 
-To start using git-tf you should have a git commit corresponding to a
-TFS changeset. The changeset is not required to be latest changeset.
-If loosing your git change history, and downloading it from TFS is
-acceptable, then do the following:
+    $ git tf clone -e yourName@tfsServer.com --all
 
-1.  Get the version from TFS that you would like your git history to start
-from. For example, you want to fetch history starting from 12345:
-   
-        $ tf get -version:C12345 -recursive .
-
-2.  Init a git repository, configure it and commit the fetched files
-   
-        $ git init
-        $ git config user.email yourName@yourTfsServer.com
-        $ git commit -am "Initial commit"
-
-   The email domain must match the TFS server domain name.
-
-3.  Mark the commit with a note
-   
-        $ git notes --ref=tf add -m "12345"
-
-4.  Create a _tfs_ branch:
-
-        $ git branch --track tfs
-
-5.  You might want to set the _tf.cmd_ config value that allows you to override the default
-path and arguments to the Team Explorer Anywhere executable. This can by useful to configure
-the authentication for your TFS connection. For example:
-
-        $ git config tf.cmd 'tf -profile:MyProxyProfile'
-
-   Details are [here](http://msdn.microsoft.com/en-us/library/hh190726.aspx).
-
-   By default `tf` is assumed to be in the _PATH_ variable.
-
-The configuration is complete. Now you can fetch the remaining changesets
-
-    $ git tf fetch
-
+This will import the entire change history from TFS to Git.
 Be patient. TFS works way slower than Git.
+
+To import only a certain part of the history use `--version` option:
+
+    $ git tf clone -e yourName@tfsServer.com --version=42121
+
+This will fetch change history since changeset 42121.
 
 DO NOT MERGE
 ------------
