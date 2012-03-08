@@ -46,9 +46,9 @@ class fetch(Command):
         history.pop(0)
         history = history[:self.args.number]
 
-        self.doFetch(history, repair)
+        self.doFetch(history)
 
-    def doFetch(self, history, repair=None):
+    def doFetch(self, history):
         print('%d changeset(s) to fetch' % len(history))
         domain = tf.getDomain()
         dryRun = self.args.dryRun
