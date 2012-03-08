@@ -23,6 +23,7 @@ class fetch(Command):
     def _run(self):
         domain = tf.getDomain()
         dryRun = self.args.dryRun
+        verbose = self.args.verbose
 
         print('Fetching from TFS')
 
@@ -35,7 +36,8 @@ class fetch(Command):
                  git('log -1 --format=%H tfs'))
 
         latestChangeset = tf.history(stopAfter=1)[0].id
-        print('Latest changeset on TFS:', latestChangeset)
+        if verbose:
+            print('Latest changeset on TFS:', latestChangeset)
         if lastChangeset == latestChangeset:
             print('Nothing to fetch')
             return False
@@ -48,12 +50,13 @@ class fetch(Command):
 
         print('%d changeset(s) to fetch' % len(history))
 
-        with ReadOnlyWorktree(self.args.verbose):
+        with ReadOnlyWorktree(verbose):
             try:
                 for i, cs in enumerate(history):
-                    printLine()
+                    if verbose:
+                        printLine()
                     print('Fetching [%d/%d] "%s"...' % (i + 1, len(history), cs.line))
-                    tfgetResponse = tf.get(cs.id, dryRun=dryRun, output=True).strip()
+                    tfgetResponse = tf.get(cs.id, dryRun=dryRun, output=verbose).strip()
                     if tfgetResponse == _allFilesUpToDate and not self.args.force:
                         print()
                         print('tf did not fetch anything. Usually it happens when the local folder contents is '
@@ -63,16 +66,18 @@ class fetch(Command):
                               'change any files.')
                         fail()
 
-                    print('Committing to Git...')
+                    if verbose:
+                        print('Committing to Git...')
                     comment = cs.comment
                     if not comment:
-                        print('The comment is empty. Using changeset number as a comment')
+                        if verbose:
+                            print('The comment is empty. Using changeset number as a comment')
                         comment = str(cs.id)
                     comment = comment.replace('"', '\\"')
                     git('add -A .', dryRun=dryRun)
                     commitArgs = r'commit --allow-empty -m "%s" --author="%s <%s@%s>" --date="%s"' % \
                                  (comment, cs.committer, cs.committer, domain, cs.dateIso)
-                    git(commitArgs, output=True, dryRun=dryRun)
+                    git(commitArgs, output=verbose, dryRun=dryRun)
                     git('notes add -m %s' % cs.id, dryRun=dryRun)
             except:
                 if not dryRun:

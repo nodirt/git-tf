@@ -148,7 +148,8 @@ class _tf(Runner):
             self.dateIso = node.get('date')
             self.date = parseXmlDatetime(self.dateIso)
             self.committer = node.get('committer').split('\\', 1)[-1].strip()
-            self.line = ' '.join((self.id, self.committer, self.date.ctime(), self.comment)).strip()
+            self.line = ' '.join((self.id, self.committer, self.date.ctime(), self.comment))\
+                .strip().replace('\n', ' ')[:128]
 
     def history(self, version=None, stopAfter=None):
         filter = ['']

@@ -20,9 +20,13 @@ class push(Command):
 
     def _push(self, hash, index, total):
         dryRun = self.args.dryRun
-        print()
-        printLine()
+        verbose = self.args.verbose
+
         git('checkout ' + hash)
+
+        if verbose:
+            print()
+            printLine()
         print('Pushing [%d/%d] %s...' % (index + 1, total, git(r'log -1 --format="%h \"%s\""')))
 
         def rawDiff(changeType):
@@ -31,8 +35,9 @@ class push(Command):
         def readChanges(changeType, displayChangeType):
             changes = [change[change.index('\t'):].strip().split('\t') for change in rawDiff(changeType).splitlines()]
             if changes:
-                print(displayChangeType + ':')
-                printIndented([' -> '.join(f) for f in changes])
+                if verbose:
+                    print(displayChangeType + ':')
+                    printIndented([' -> '.join(f) for f in changes])
                 yield changes
 
         def joinFiles(files):
@@ -77,7 +82,7 @@ class push(Command):
                 workitems = '"-associate:%s"' % workitems
             checkin = tf(('checkin "-comment:{}" -recursive {} .', comment, workitems),
                 allowedExitCodes=[0, 1],
-                output=True,
+                output=verbose,
                 dryRun=dryRun and 'Changeset #12345')
             changeSetNumber = re.search(r'^Changeset #(\d+)', checkin, re.M)
             if not changeSetNumber:
@@ -92,7 +97,8 @@ class push(Command):
             raise
 
         # add a note about the changeset number
-        print('Moving tfs branch HEAD and marking the commit with a "tf" note')
+        if verbose:
+            print('Moving tfs branch HEAD and marking the commit with a "tf" note')
         git('checkout tfs', dryRun=dryRun)
         git('merge --ff-only %s' % hash, dryRun=dryRun)
         git('notes add -m "%s" %s' % (changeSetNumber, hash), dryRun=dryRun)
@@ -107,7 +113,8 @@ class push(Command):
             printIndented(unmergedCommits)
             fail()
 
-        print('Last synchronized commit:', git('log -1 --format=%h tfs'))
+        if self.args.verbose:
+            print('Last synchronized commit:', git('log -1 --format=%h tfs'))
         commits = git('log %s.. --format=%%H master --reverse --first-parent' % lastCommit).splitlines()
         commits = commits[:self.args.number]
         if not commits:
