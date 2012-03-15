@@ -75,7 +75,8 @@ class push(Command):
             for c in readChanges('CA', 'Added'):
                 tfmut('add {}', joinChanges([files[-1:] for files in c]))
 
-            print('Checking in...')
+            if verbose:
+                print('Checking in...')
             comment = git('log -1 --format=%s%n%b').strip().replace('"', '\\"')
             workitems = git('notes --ref=%s show %s' % (wi.noteNamespace, hash), errorValue='')
             if workitems:
@@ -88,6 +89,8 @@ class push(Command):
             if not changeSetNumber:
                 fail('Check in failed.')
             changeSetNumber = changeSetNumber.group(1)
+            if not verbose:
+                print('Changeset number:', changeSetNumber)
         except:
             if not dryRun:
                 print('Restoring Git and TFS state...')

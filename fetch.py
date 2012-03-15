@@ -83,6 +83,8 @@ class fetch(Command):
                                  (comment, cs.committer, cs.committer, domain, cs.dateIso)
                     git(commitArgs, output=verbose, dryRun=dryRun)
                     git('notes add -m %s' % cs.id, dryRun=dryRun)
+                    if not verbose:
+                        print('Commit:', git('log -1 --format=%h'))
             except:
                 if not dryRun:
                     lastSyncedChangeset = git.getChangesetNumber()
