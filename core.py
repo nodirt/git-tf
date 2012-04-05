@@ -280,6 +280,24 @@ def chmod(path, writable, rec=True):
                 update(os.path.join(root, filename))
 
 
+def mkdir(path, parents=False):
+    if not parents:
+        return os.mkdir(path)
+
+    if os.path.exists(path):
+        return
+
+    parents = [path]
+    while True:
+        parent = os.path.split(parents[0])[0]
+        if os.path.exists(parent):
+            break
+        parents.insert(0, parent)
+
+    for d in parents:
+        os.mkdir(d)
+
+
 def printIndented(text, indent=1):
     if isinstance(text, str):
         lines = text.splitlines()
