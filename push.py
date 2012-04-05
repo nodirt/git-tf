@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from core import *
+import shutil
 import re
 import wi
 
@@ -64,14 +65,25 @@ class push(Command):
             for changes in readChanges('R', 'Renamed'):
                 for files in changes:
                     src, dest = files
-                    if not dryRun:
-                        os.rename(dest, src)
+                    destDir = createDestDir = None
                     try:
                         tfmut('rename {}', joinFiles(files))
                     except:
                         if not dryRun:
-                            os.rename(src, dest)
-                        raise
+                            destDir = os.path.dirname(src)
+                            createDestDir = not os.path.exists(destDir)
+                            if createDestDir:
+                                mkdir(destDir, True)
+                            os.rename(dest, src)
+                        try:
+                            tfmut('rename ' + joinFiles(files))
+                        except:
+                            if not dryRun:
+                                os.rename(src, dest)
+                            raise
+                    finally:
+                        if createDestDir:
+                            shutil.rmtree(destDir)
             for c in readChanges('CA', 'Added'):
                 tfmut('add {}', joinChanges([files[-1:] for files in c]))
 
