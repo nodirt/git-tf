@@ -67,8 +67,6 @@ class push(Command):
                     src, dest = files
                     destDir = createDestDir = None
                     try:
-                        tfmut('rename {}', joinFiles(files))
-                    except:
                         if not dryRun:
                             destDir = os.path.dirname(src)
                             createDestDir = not os.path.exists(destDir)
@@ -76,7 +74,7 @@ class push(Command):
                                 mkdir(destDir, True)
                             os.rename(dest, src)
                         try:
-                            tfmut('rename ' + joinFiles(files))
+                            tfmut('rename {}', joinFiles(files))
                         except:
                             if not dryRun:
                                 os.rename(src, dest)
