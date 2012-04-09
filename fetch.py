@@ -27,10 +27,12 @@ class fetch(Command):
 
         try:
             lastChangeset = git.getChangesetNumber()
+            if not lastChangeset:
+                raise Exception()
             print('Last synchronized changeset:', lastChangeset)
         except:
             lastChangeset = None
-            fail('Last changeset could not determined. Probably the last commit is missing a tf note. Commit: %s' %
+            fail('The last synchronized changeset could not determined. Probably the last commit is missing a tf note. Commit: %s' %
                  git('log -1 --format=%H tfs'))
 
         latestChangeset = tf.history(stopAfter=1)[0].id

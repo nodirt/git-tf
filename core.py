@@ -143,6 +143,8 @@ class _tf(Runner):
     class Changeset(object):
         def __init__(self, node):
             self.id = node.get('id')
+            if not self.id:
+                fail('Could not determine changeset id: %s' % node)
             self.comment = node.find('comment')
             self.comment = self.comment is not None and self.comment.text or ''
             self.dateIso = node.get('date')
