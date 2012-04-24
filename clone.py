@@ -61,6 +61,8 @@ class clone(Command):
         self.checkStatus(checkGit=False)
 
         git('init')
+        git('config core.autocrlf true')
+
         try:
             # Email
             def checkEmail(email):
