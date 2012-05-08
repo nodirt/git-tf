@@ -26,14 +26,11 @@ class fetch(Command):
         print('Fetching from TFS')
 
         try:
-            lastChangeset = git.getChangesetNumber()
-            if not lastChangeset:
-                raise Exception()
+            lastChangeset = git.getChangesetNumber(fail=True)
             print('Last synchronized changeset:', lastChangeset)
         except:
             lastChangeset = None
-            fail('The last synchronized changeset could not determined. Probably the last commit is missing a tf note. Commit: %s' %
-                 git('log -1 --format=%H tfs'))
+            git.failNoLastChangeset()
 
         latestChangeset = tf.history(stopAfter=1)[0].id
         if self.args.verbose:

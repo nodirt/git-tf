@@ -135,7 +135,7 @@ class push(Command):
             return
 
         print('Checking whether there are no unfetched changes on TFS...')
-        ourLatestChangeset = git.getChangesetNumber(lastCommit)
+        ourLatestChangeset = git.getChangesetNumber(lastCommit, fail=True)
         theirLatestChangeset = tf.history(stopAfter=1)[0].id
         if int(ourLatestChangeset) < int(theirLatestChangeset):
             print('There are unfetched changes on TFS. Fetch and merge them before pushing')

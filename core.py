@@ -118,9 +118,13 @@ class _git(Runner):
     def hasChanges(self):
         return self('status -s')
 
-    def getChangesetNumber(self, commit=''):
+    def getChangesetNumber(self, commit='', fail=False):
         note = git('notes show ' + commit, errorValue='')
-        return re.findall(r'^\d+', note, re.M)[-1] if note else None
+        return re.findall(r'^\d+', note, re.M)[-1] if note else self.failNoLastChangeset() if fail else None
+
+    def failNoLastChangeset(self):
+        fail('The last synchronized changeset could not determined. Probably the last commit is missing a tf note. Commit: %s' %
+                 git('log -1 --format=%H tfs'))
 
 git = _git()
 try:
