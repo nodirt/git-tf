@@ -9,10 +9,11 @@ import push
 import wi
 import log
 import clone
+import repair
 
 argParser = ArgParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
 parsers = argParser.add_subparsers(title='Commands:', parser_class=ArgParser)
-for m in [clone, pull, fetch, push, log, wi]:
+for m in [clone, pull, fetch, push, log, repair, wi]:
     commandType = getattr(m, m.__name__)
     cmd = commandType()
     ctorArgs = cmd.argParserCtorArgs()

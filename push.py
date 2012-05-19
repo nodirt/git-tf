@@ -2,6 +2,7 @@
 from core import *
 import shutil
 import re
+import repair
 import wi
 
 
@@ -103,10 +104,9 @@ class push(Command):
                 print('Changeset number:', changeSetNumber)
         except:
             if not dryRun:
-                print('Restoring Git and TFS state...')
-                with ReadOnlyWorktree():
-                    tf('undo -recursive .', allowedExitCodes=[0, 100])
-                git('checkout -f tfs')
+                repairer = repair()
+                repairer.checkoutBranch = 'tfs'
+                repairer._run()
             raise
 
         # add a note about the changeset number

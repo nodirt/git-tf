@@ -187,6 +187,8 @@ class _tf(Runner):
     def get(self, version, **kwargs):
         return self(('get -version:{} -recursive .', version), **kwargs)
 
+    def hasPendingChanges(self):
+        return self('status') != 'There are no matching pending changes.'
 
 tf = _tf()
 
@@ -220,7 +222,7 @@ class Command:
             prog='git-tf-' + type(self).__name__)
 
     def initArgParser(self, parser):
-        parser.set_defaults(cmd=self, dryRun=False, verbose=0)
+        parser.set_defaults(cmd=self, dryRun=False, verbose=0, noChecks=False)
         self._initArgParser(parser)
 
     def _initArgParser(self, parser):
@@ -238,7 +240,7 @@ class Command:
 
         if checkTfs is True and not self.args.noChecks:
             print('Checking TFS status. There must be no pending changes...')
-            if tf('status') != 'There are no matching pending changes.':
+            if tf.hasPendingChanges():
                 fail('TFS status is dirty!')
 
     def switchBranch(self, branch='tfs', allowNoBranch=False):
