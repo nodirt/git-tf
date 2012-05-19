@@ -4,7 +4,7 @@ import datetime
 
 
 class log(Command):
-    """Show changeset log"""
+    """Show changeset log."""
 
     def _initArgParser(self, parser):
         Command._initArgParser(self, parser)

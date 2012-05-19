@@ -39,7 +39,7 @@ local git repository. You can stash, rebase, make local branches, bisect, etc. N
     This sends each of your pending commits to TFS individually. If a commit was associated with workitems,
     then the created changeset is associated with them automatically.
 
-    To see the list of pending commits use `$ git log tfs..` while you are on _master_ branch,
+    To see the list of pending commits use `$ git log tfs..` while you are on _master_ branch.
 
 How it works
 ------------
