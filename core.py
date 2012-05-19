@@ -241,22 +241,23 @@ class Command:
             if tf('status') != 'There are no matching pending changes.':
                 fail('TFS status is dirty!')
 
-    def switchToTfsBranch(self):
+    def switchBranch(self, branch='tfs', allowNoBranch=False):
         def getCurBranch():
             branches = git('branch').splitlines()
-            return [b[2:] for b in branches if b.startswith('* ')][0]
-
-        noBranch = '(no branch)'
+            branch = [b[2:] for b in branches if b.startswith('* ')][0]
+            return branch if branch != '(no branch)' else None
 
         def checkoutBranch(branch):
             curBranch = getCurBranch()
-            if curBranch != branch and curBranch != noBranch:
+            if curBranch != branch and curBranch:
                 git('checkout ' + branch)
         origBranch = getCurBranch()
-        if origBranch == noBranch:
+        if origBranch is None and not allowNoBranch:
             fail('Not currently on any branch')
-        checkoutBranch('tfs')
-        self._free.append(lambda: checkoutBranch(origBranch))
+        if origBranch != branch:
+            checkoutBranch(branch)
+            if origBranch:
+                self._free.append(lambda: checkoutBranch(origBranch))
 
     def __enter__(self):
         pass

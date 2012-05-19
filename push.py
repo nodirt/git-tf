@@ -17,7 +17,7 @@ class push(Command):
     def __enter__(self):
         self.moveToRootDir()
         self.checkStatus()
-        self.switchToTfsBranch()
+        self.switchBranch()
 
     def _push(self, hash, index, total):
         dryRun = self.args.dryRun

@@ -18,7 +18,7 @@ class fetch(Command):
     def __enter__(self):
         self.moveToRootDir()
         self.checkStatus()
-        self.switchToTfsBranch()
+        self.switchBranch()
 
     def _run(self):
         tf.getDomain()
