@@ -232,7 +232,7 @@ class Command:
         if checkGit and git('status -s') != '':
             fail('Worktree is dirty. Stash your changes before proceeding.')
 
-        if checkTfs is True or not self.args.noChecks:
+        if checkTfs is True and not self.args.noChecks:
             print('Checking TFS status. There must be no pending changes...')
             if tf('status') != 'There are no matching pending changes.':
                 fail('TFS status is dirty!')
