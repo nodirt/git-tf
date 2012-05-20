@@ -61,7 +61,8 @@ class clone(Command):
         self.checkStatus(checkGit=False)
 
         git('init')
-        git('config core.autocrlf true')
+        autocrlf = git('config tf.clone.autocrlf') or 'true'
+        git('config core.autocrlf ' + autocrlf)
 
         try:
             # Email

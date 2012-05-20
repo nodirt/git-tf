@@ -137,6 +137,13 @@ To import only a certain part of the history use `--version` option:
 
 This will fetch change history since changeset 42121.
 
+###Line endings
+
+Since the majority of TFS users are on Windows, the `core.autocrlf` is set to true by default.
+To change that set `tf.clone.autocrlf` config value to false globally before cloning:
+
+    $ git config --global tf.clone.autocrlf false
+
 DO NOT MERGE
 ------------
 
