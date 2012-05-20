@@ -10,6 +10,8 @@ Features
 *   TFS Workitem support: `git tf wi`.
 *   Displays TFS-styled history with changeset numbers instead of commit hashes: `git tf log`.
 
+New features are implemented in the `dev` branch.
+
 ### Usage workflow
 
 Here is the typical git-tf usage workflow:
@@ -154,7 +156,7 @@ If you use `merge`, you will screw your TFS history up when you `push` and
 your team won't be happy.
 
 Mailing list
---------
+------------
 ...is [here](https://groups.google.com/group/git-tf)
 
 [msdnWorkspace]: http://msdn.microsoft.com/en-us/library/y901w7se(v=vs.80).aspx

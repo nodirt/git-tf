@@ -71,7 +71,7 @@ class Runner:
                 return self.pipe.returncode
 
             def fail(self, lastMsg=None):
-                errorOutput = self.pipe.stderr.readall().decode('utf-8').strip()
+                errorOutput = self.pipe.stderr.read(-1).decode('utf-8').strip()
                 if errorOutput:
                     print(errorOutput)
                 print('Command "%s" exited with code %s' % (cmd, self.poll()))
