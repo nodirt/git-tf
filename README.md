@@ -6,9 +6,9 @@ Features
 
 *   Synchronizes Git commits with TFS changesets and vice versa.
 *   One-to-one changeset-commit correspondence.
-*   Works transparently. Other TFS users may not even know, that you use Git.
+*   Works transparently. Other TFS users may not even know that you use Git.
 *   TFS Workitem support: `git tf wi`.
-*   Displays TFS-styled history with changeset numbers instead of commit hashes: `git tf log`
+*   Displays TFS-styled history with changeset numbers instead of commit hashes: `git tf log`.
 
 ### Usage workflow
 
@@ -39,23 +39,23 @@ local git repository. You can stash, rebase, make local branches, bisect, etc. N
     This sends each of your pending commits to TFS individually. If a commit was associated with workitems,
     then the created changeset is associated with them automatically.
 
-    To see the list of pending commits use `$ git log tfs..` while you are on _master_ branch.
+    To see the list of pending commits use `$ git tf status` while you are on _master_ branch.
 
 How it works
 ------------
 
-The _tfs_ branch HEAD points to the git commit in the _master_ branch
+The _tfs_ branch points to the git commit in the _master_ branch
 that is last synchronized with TFS. In some sense _tfs_ branch is
 analogous to _origin_.
 
 Each git commit synchronized with TFS has a [git note](http://schacon.github.com/git/git-notes.html) in the _tf_
-namespace. Each note has a TFS changeset number. To see the notes execute
+namespace. Each note has a TFS changeset number. To see the notes run
 
     $ git log --show-notes=tf
 
 Associated workitems IDs are stored in the _tf.wi_ note namespace.
 
-The commit pointed by _tfs_ branch HEAD must always have a note. Without it git-tf won't be able to sync.
+The commit pointed by _tfs_ branch must always have a note. Without it git-tf won't be able to sync.
 
 `fetch`, `pull` and `push` commands move the _tfs_ branch.
 
@@ -79,7 +79,7 @@ a cross-platform client for TFS.
 
 Once it is installed, you have to accept their EULA:
 
-    $ tf eula
+    $ tf eula -accept
 
 It is a paid product, but you can use it for 180 days:
 
@@ -93,29 +93,20 @@ TFS Configuration
 Skip this section if you have already mapped a TFS server folder to a local folder.
 
 1.  Configure a [profile](http://msdn.microsoft.com/en-us/library/gg413276.aspx). 
-    There is an example:
-   
-        $ tf profile -new MyProxyProfile \
+
+        $ tf profile -new myProfile \
         -string:serverUrl=http://tfs01.xyz.example.com \
         -string:userName=john \
         -string:userDomain=company \
         -string:password=password \
-        -boolean:httpProxyEnabled=true \
-        -string:httpProxyUrl=http://proxy01.xyz.example.com \
-        -boolean:httpProxyEnableAuth=true \
-        -string:httpProxyUsername=john \
-        -string:httpProxyPassword=proxy_password \
-        -boolean:tfProxyEnabled=true \
-        -string:tfProxyUrl=http://tfproxy01.xyz.example.com \
         -boolean:acceptUntrustedCertificates=true
    
    Make sure that _acceptUntrustedCertificates_ is set to _true_ if you have
-   a secure connection (https). Keep in mind that you must escape any character that your shell may
-   interpret (like space) in double quotes.
+   a secure connection (https).
 
 2.  Create a [workspace.][msdnWorkspace]
 
-        $ tf workspace -new -collection:http://tfs01.xyz.example.com MyWorkspace
+        $ tf workspace -new -profile:myProfile -collection:http://tfs01.xyz.example.com MyWorkspace
 
 3.  Map a server folder to a local folder:
    
@@ -131,11 +122,14 @@ Once you have a local folder mapped to a server folder, you can use `clone`:
 This will import the entire change history from TFS to Git.
 Be patient. TFS works way slower than Git.
 
-To import only a certain part of the history use `--version` option:
+###Changesets to fetch
 
-    $ git tf clone -e yourName@tfsServer.com --version=42121
+There are four ways to specify what changesets to fetch:
 
-This will fetch change history since changeset 42121.
+1. By default only the latest changeset is fetched
+2. `--all` option: fetch the entire TFS history
+3. `--number` option: fetch a specified number of changesets
+4. `--version` option: fetch changesets since the specified version
 
 ###Line endings
 
