@@ -22,6 +22,7 @@ class clone(Command):
             help='first changeset. Defaults to the latest.')
         ver.add_argument('-A', '--all', action='store_true',
             help='Fetch the entire history. Slow.')
+        ArgParser.addNumber(ver, 'Number of changesets to fetch')
 
         parser.add_argument('-e', '--email',
             help='email for TFS')
@@ -76,6 +77,9 @@ class clone(Command):
         if self.args.all:
             print('Requesting for the entire TFS history...')
             return tf.history()
+        elif self.args.number:
+            print('Requesting for TFS history...')
+            return tf.history(stopAfter=self.args.number)
         else:
             print('Determining the latest version...')
             history = tf.history(stopAfter=1)
