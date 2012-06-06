@@ -38,7 +38,7 @@ class Runner:
             args = map(lambda a: a if type(a) == str else self.argsToStr(a), args)
             return fmt.format(*args)
         else:
-            return self.argsToStr(str(args))
+            return str(args)
 
     def genCommand(self, args):
         cmd = self.prefix
@@ -49,7 +49,9 @@ class Runner:
         return cmd
 
     def start(self, args):
+
         class Process:
+
             def __init__(self, pipe):
                 self.pipe = pipe
 
@@ -137,12 +139,6 @@ except GitTfException:
 
 class _tf(Runner):
     prefix = git('config tf.cmd', errorValue='tf')
-    paramPrefix = git('config tf.paramPrefix', errorValue='') or '/' if os.name == 'nt' else '-'
-
-    def argsToStr(self, args):
-        if type(args) == str and self.paramPrefix != '-':
-            args = args.replace('-', self.paramPrefix)
-        return Runner.argsToStr(self, args)
 
     class Changeset(object):
         def __init__(self, node):
