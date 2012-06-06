@@ -38,8 +38,11 @@ class clone(Command):
     def _checkDirectory(self):
         print('Determining the TFS workspace and folder mapping...')
         workfold = tf('workfold .')
-        pwd = os.path.abspath('.')
-        folderMaps = re.findall('^\s*(\$[^:]+): (\S+)$', workfold, re.M)
+        pwd = os.path.normcase(os.path.abspath('.'))
+        folderMaps = re.findall('^\s*(\$[^:]+): (\S+)\r?$', workfold, re.M)
+        # normalize case
+        folderMaps = [(s, os.path.normcase(l)) for s, l in folderMaps]
+
         if any(pwd == l for s, l in folderMaps):
             return
 
