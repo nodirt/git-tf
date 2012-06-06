@@ -50,6 +50,7 @@ class clone(Command):
         fail()
 
     def _setupEmail(self):
+
         def checkEmail(email):
             if not re.match(emailRgx, email, flags=re.I):
                 fail('Malformed email: ' + email)
