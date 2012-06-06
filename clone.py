@@ -40,11 +40,14 @@ class clone(Command):
         workfold = tf('workfold .')
         pwd = os.path.abspath('.')
         folderMaps = re.findall('^\s*(\$[^:]+): (\S+)$', workfold, re.M)
-        serverRoot, localRoot = [(s, l) for s, l in folderMaps if os.path.commonprefix((l, pwd)) == l][0]
-        if localRoot != pwd:
-            print('You must be in the mapped local folder to use "git tf clone":')
-            printIndented(localRoot)
-            fail()
+        if any(pwd == l for s, l in folderMaps):
+            return
+
+        print('You must be in a mapped local folder to use "git tf clone"')
+        for serverRoot, localRoot in folderMaps:
+            if os.path.commonprefix((localRoot, pwd)) == localRoot:
+                printIndented(localRoot)
+        fail()
 
     def _setupEmail(self):
         def checkEmail(email):
