@@ -13,6 +13,8 @@ import xml.etree.ElementTree as etree
 os.environ['GIT_NOTES_REF'] = 'refs/notes/tf'
 locale.setlocale(locale.LC_ALL, '')
 
+mswindows = sys.platform == "win32"
+
 
 class GitTfException(Exception):
     pass
@@ -22,6 +24,21 @@ def fail(msg=None):
     if msg:
         print(msg)
     raise GitTfException(None)
+
+
+def resolveExecutable(name):
+    if not mswindows:
+        return name
+    extensions = ('', '.cmd', '.exe')
+    for dir in os.path.expandvars("$PATH").split(';'):
+        dir = os.path.normpath(dir)
+        for ext in extensions:
+            path = os.path.join(dir, name + ext)
+            if os.path.exists(path):
+                if ' ' in path:
+                    path = '"' + path + '"'
+                return path
+    fail('%s not found in the $PATH variable' % name)
 
 _curCommand = None
 
@@ -82,7 +99,7 @@ class Runner:
                 fail()
 
         cmd = (self.prefix and self.prefix + ' ') + self.argsToStr(args)
-        return Process(proc.Popen(cmd, shell=True, stderr=proc.PIPE, stdout=proc.PIPE))
+        return Process(proc.Popen(cmd, shell=not mswindows, stderr=proc.PIPE, stdout=proc.PIPE))
 
     def __call__(self, args, allowedExitCodes=[0], errorValue=None, output=False, indent=1, dryRun=None, errorMsg=None):
         verbose = _curCommand and _curCommand.args.verbose > 1
@@ -115,7 +132,7 @@ run = Runner()
 
 
 class _git(Runner):
-    prefix = 'git'
+    prefix = resolveExecutable('git')
 
     def hasChanges(self):
         return self('status -s')
@@ -365,7 +382,8 @@ def printIndented(text, indent=1):
         print('  ' * indent + line)
 
 
-_terminalHeight, terminalWidth = [int(x) for x in os.popen('stty size', 'r').read().split()] or [24, 80]
+_terminalHeight, terminalWidth = not mswindows and [int(x) for x in os.popen('stty size',
+    'r').read().split()] or [24, 80]
 
 
 def printLine():
