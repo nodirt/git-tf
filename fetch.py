@@ -71,7 +71,7 @@ class fetch(Command):
 
                     if verbose:
                         print('Committing to Git...')
-                    comment = cs.comment.trim() if cs.comment else None
+                    comment = cs.comment.strip() if cs.comment else None
                     if not comment:
                         if verbose:
                             print('The comment is empty. Using changeset number as a comment')
