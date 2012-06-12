@@ -10,7 +10,7 @@ class status(Command):
         self.switchBranch('master')
 
     def _run(self):
-        commits = git('log tfs.. --format="%h %s"').splitlines()
+        commits = git('log tfs.. --format="%h %s" --first-parent').splitlines()
         if not commits:
             print('There are no commits to be pushed to TFS')
             return

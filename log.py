@@ -15,7 +15,7 @@ class log(Command):
         gitArgs = ', '.join(map(lambda s: '\'' + s + '\'', self.args.gitArgs))
 
         endMarker = '</git.tf>'
-        process = git.start('log {} --format="%h\t%an\t%at\t%s%n%N%n{}"'.format(gitArgs, endMarker))
+        process = git.start('log {} --first-parent --format="%h\t%an\t%at\t%s%n%N%n{}"'.format(gitArgs, endMarker))
         for line in iter(process.readline, None):
             (commit, author, date, comment) = line.split('\t', 3)
             date = datetime.datetime.fromtimestamp(int(date)).strftime('%x %X')
