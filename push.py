@@ -76,6 +76,7 @@ class push(Command):
                             os.rename(dest, src)
                         try:
                             tfmut('rename {}', joinFiles(files))
+                            tfmut('checkout {}', files[1])
                         except:
                             if not dryRun:
                                 os.rename(src, dest)
