@@ -70,7 +70,7 @@ class clone(Command):
                 print('Email is not specified, so using ', email)
 
     def _setupAutocrlf(self):
-        autocrlf = git('config tf.clone.autocrlf') or 'true'
+        autocrlf = git('config tf.clone.autocrlf', errorValue='true')
         git('config core.autocrlf ' + autocrlf)
 
     def _setupBranches(self):

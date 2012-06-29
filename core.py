@@ -188,7 +188,7 @@ class _tf(Runner):
         if domain:
             return domain
 
-        email = git('config user.email')
+        email = git('config user.email', errorValue='')
         if not email:
             print('Email not set. Configure it:')
             fail('$ git config user.email userName@yourTfsServer.com')
