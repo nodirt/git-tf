@@ -115,7 +115,7 @@ class Runner:
         result = ''
         for line in iter(process.readline, None):
             if output or verbose:
-                print('  ' * indent + line)
+                print('  ' * indent + forPrint(line))
             result = result and result + '\n'
             result += line
 
@@ -413,3 +413,7 @@ def printLess(lines):
                 less.stdin.write(bytes(line + '\n', 'utf-8'))
         finally:
             less.communicate()
+
+
+def forPrint(test):
+    return test.encode('utf-8').decode('ascii', 'ignore')
