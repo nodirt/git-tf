@@ -53,7 +53,7 @@ analogous to _origin_.
 Each git commit synchronized with TFS has a [git note](http://schacon.github.com/git/git-notes.html) in the _tf_
 namespace. Each note has a TFS changeset number. To see the notes run
 
-    $ git log --show-notes=tf
+    $ git log --notes=tf
 
 Associated workitems IDs are stored in the _tf.wi_ note namespace.
 
