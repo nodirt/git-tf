@@ -69,7 +69,9 @@ class clone(Command):
         autocrlf = git('config tf.clone.autocrlf') or 'true'
         git('config core.autocrlf ' + autocrlf)
 
+        # rewrite all tf* notes on rebase, namely tf.wi
         git('config notes.rewrite.rebase true')
+        git('config notes.rewriteRef refs/notes/tf*')
 
     def _setupBranches(self):
         git('commit --allow-empty -m root-commit')
