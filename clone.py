@@ -69,9 +69,11 @@ class clone(Command):
             if self.args.verbose:
                 print('Email is not specified, so using ', email)
 
-    def _setupAutocrlf(self):
-        autocrlf = git('config tf.clone.autocrlf', errorValue='true')
+    def _configure(self):
+        autocrlf = git('config tf.clone.autocrlf', errorValue='true') or 'true'
         git('config core.autocrlf ' + autocrlf)
+
+        git('config notes.rewrite.rebase true')
 
     def _setupBranches(self):
         git('commit --allow-empty -m root-commit')
@@ -124,7 +126,7 @@ class clone(Command):
 
         git('init')
         try:
-            self._setupAutocrlf()
+            self._configure()
             self._setupEmail()
             self._setupBranches()
             self._fetch()
