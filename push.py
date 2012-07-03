@@ -105,7 +105,7 @@ class push(Command):
                 print('Changeset number:', changeSetNumber)
         except:
             if not dryRun:
-                repairer = repair()
+                repairer = repair.repair()
                 repairer.checkoutBranch = 'tfs'
                 repairer._run()
             raise
