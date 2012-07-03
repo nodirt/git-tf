@@ -4,6 +4,7 @@ import shutil
 import re
 import repair
 import wi
+import tempfile
 
 
 class push(Command):
@@ -89,14 +90,17 @@ class push(Command):
 
             if verbose:
                 print('Checking in...')
-            comment = git('log -1 --format=%s%n%b').strip().replace('"', '\\"')
+            comment = git('log -1 --format=%s%n%b').strip()
             workitems = git('notes --ref=%s show %s' % (wi.noteNamespace, hash), errorValue='')
             if workitems:
                 workitems = '"-associate:%s"' % workitems
-            checkin = tf(('checkin "-comment:{}" -recursive {} .', comment, workitems),
-                allowedExitCodes=[0, 1],
-                output=verbose,
-                dryRun=dryRun and 'Changeset #12345')
+            with tempfile.NamedTemporaryFile('w') as tempFile:
+                tempFile.file.write(comment)
+                tempFile.file.close()
+                checkin = tf(('checkin "-comment:@{}" -recursive {} .', tempFile.name, workitems),
+                    allowedExitCodes=[0, 1],
+                    output=verbose,
+                    dryRun=dryRun and 'Changeset #12345')
             changeSetNumber = re.search(r'^Changeset #(\d+)', checkin, re.M)
             if not changeSetNumber:
                 fail('Check in failed.')
@@ -105,7 +109,7 @@ class push(Command):
                 print('Changeset number:', changeSetNumber)
         except:
             if not dryRun:
-                repairer = repair()
+                repairer = repair.repair()
                 repairer.checkoutBranch = 'tfs'
                 repairer._run()
             raise
