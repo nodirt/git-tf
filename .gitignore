@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+
+# Temporary (g)vim artifacts:
+*.swp
+*.swo
+tags
