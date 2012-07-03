@@ -77,6 +77,7 @@ class fetch(Command):
                             print('The comment is empty. Using changeset number as a comment')
                         comment = str(cs.id)
                     comment = comment.replace('"', '\\"')
+                    comment = comment.replace('$', '\\$')
                     git('add -A .', dryRun=dryRun)
                     commitArgs = r'commit --allow-empty -m "%s" --author="%s <%s@%s>" --date="%s"' % \
                                  (comment, cs.committer, cs.committer, domain, cs.dateIso)
