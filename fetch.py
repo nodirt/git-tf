@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from core import *
 import re
+import tempfile
 
 _allFilesUpToDate = 'All files up to date.'
 
@@ -76,11 +77,13 @@ class fetch(Command):
                         if verbose:
                             print('The comment is empty. Using changeset number as a comment')
                         comment = str(cs.id)
-                    comment = comment.replace('"', '\\"')
                     git('add -A .', dryRun=dryRun)
-                    commitArgs = r'commit --allow-empty -m "%s" --author="%s <%s@%s>" --date="%s"' % \
-                                 (comment, cs.committer, cs.committer, domain, cs.dateIso)
-                    git(commitArgs, output=verbose, dryRun=dryRun)
+                    with tempfile.NamedTemporaryFile('w') as tempFile:
+                        tempFile.file.write(comment)
+                        tempFile.file.close()
+                        commitArgs = r'commit --allow-empty -F %s --author="%s <%s@%s>" --date="%s"' % \
+                                     (tempFile.name, cs.committer, cs.committer, domain, cs.dateIso)
+                        git(commitArgs, output=verbose, dryRun=dryRun)
                     git('notes add -m %s' % cs.id, dryRun=dryRun)
                     if not verbose:
                         print('Commit:', git('log -1 --format=%h'))
